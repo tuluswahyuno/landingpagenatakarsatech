@@ -1,0 +1,174 @@
+---
+import Icon from './Icon.astro';
+import { waLink, site } from '../data/site';
+const bisnis = ['Retail / toko', 'Distributor / grosir', 'Klinik / kesehatan', 'Sekolah / pendidikan', 'Koperasi / keuangan', 'F&B / restoran', 'Manufaktur', 'Instansi / pemerintahan', 'Lainnya'];
+const fitur = ['Kasir / POS', 'Stok & gudang', 'Laporan & dashboard', 'Keuangan', 'Absensi & gaji', 'Aplikasi mobile', 'Notifikasi WhatsApp', 'Multi-cabang'];
+const budget = ['< Rp5 juta', 'Rp5–15 juta', 'Rp15–30 juta', '> Rp30 juta', 'Belum tahu'];
+---
+<section id="brief" class="section overflow-hidden">
+  <div class="container-x">
+    <div class="ring-glow relative overflow-hidden rounded-[2rem] bg-gradient-to-br from-brand-600/25 via-ink-850 to-cyan-500/10 p-6 sm:p-12">
+      <div class="mesh !opacity-30" aria-hidden="true"></div>
+      <div class="relative grid gap-12 lg:grid-cols-[0.9fr_1.1fr]">
+        <div>
+          <h2 class="text-3xl font-extrabold sm:text-5xl" data-reveal>Siap mengotomasi <span class="text-gradient">bisnis Anda?</span></h2>
+          <p class="mt-5 max-w-md text-lg text-mist" data-reveal style="--d:1">Ceritakan kebutuhan Anda dalam 1 menit. Kami balas dengan rekomendasi solusi dan estimasi biaya, gratis.</p>
+          <a href={waLink('Halo Natakarsa Tech, saya siap mengotomasi bisnis saya. Boleh konsultasi?')} target="_blank" rel="noopener" data-section="cta-akhir" class="btn btn-wa mt-8" data-reveal style="--d:2"><Icon name="wa" /> Langsung chat WhatsApp</a>
+          <ul class="mt-10 space-y-3 text-sm text-mist" data-reveal style="--d:3">
+            <li class="flex gap-2"><Icon name="check" size={18} class="text-aqua" /> Konsultasi & proposal gratis</li>
+            <li class="flex gap-2"><Icon name="check" size={18} class="text-aqua" /> Dibalas maksimal 15 menit di jam kerja</li>
+            <li class="flex gap-2"><Icon name="check" size={18} class="text-aqua" /> Data Anda tidak dibagikan ke pihak lain</li>
+          </ul>
+        </div>
+
+        <form id="brief-form" class="glass rounded-3xl p-5 sm:p-8" novalidate data-reveal style="--d:1">
+          <div class="mb-6">
+            <div class="flex justify-between text-xs text-mist"><span id="step-label">Langkah 1 dari 3</span><span id="step-name">Bisnis Anda</span></div>
+            <div class="mt-2 h-1.5 overflow-hidden rounded-full bg-white/10"><div id="step-bar" class="h-full w-1/3 rounded-full bg-gradient-to-r from-brand-400 to-aqua transition-all duration-500"></div></div>
+          </div>
+
+          <!-- Honeypot anti-spam -->
+          <input type="text" name="website" tabindex="-1" autocomplete="off" class="absolute -left-[9999px]" aria-hidden="true" />
+
+          <fieldset class="step space-y-4" data-step="1" data-name="Bisnis Anda">
+            <label class="block text-sm">Jenis bisnis
+              <select name="bisnis" class="input mt-1.5" required>
+                <option value="">Pilih jenis bisnis</option>
+                {bisnis.map((b) => <option>{b}</option>)}
+              </select>
+            </label>
+            <label class="block text-sm">Masalah atau kebutuhan utama
+              <textarea name="kebutuhan" rows="4" class="input mt-1.5" required placeholder="Contoh: stok sering selisih dan rekap laporan memakan waktu 3 hari."></textarea>
+            </label>
+          </fieldset>
+
+          <fieldset class="step hidden space-y-4" data-step="2" data-name="Fitur & budget">
+            <label class="block text-sm">Paket yang diminati
+              <select name="paket" class="input mt-1.5">
+                <option value="Belum tahu">Belum tahu, minta rekomendasi</option>
+                <option>Starter</option><option>Business</option><option>Enterprise</option>
+              </select>
+            </label>
+            <div class="text-sm">Fitur yang dibutuhkan <span class="text-mist">(opsional)</span>
+              <div class="mt-2 grid grid-cols-2 gap-2">
+                {fitur.map((f) => <label class="flex cursor-pointer items-center gap-2 rounded-xl border border-white/10 px-3 py-2 text-xs transition has-[:checked]:border-brand-400 has-[:checked]:bg-brand-500/10 sm:text-sm"><input type="checkbox" name="fitur" value={f} class="accent-brand-500" />{f}</label>)}
+              </div>
+            </div>
+            <div class="text-sm" role="radiogroup" aria-label="Perkiraan budget">Perkiraan budget
+              <div class="mt-2 flex flex-wrap gap-2">
+                {budget.map((b) => <label class="cursor-pointer rounded-full border border-white/10 px-3.5 py-1.5 text-xs transition has-[:checked]:border-brand-400 has-[:checked]:bg-brand-500/15 sm:text-sm"><input type="radio" name="budget" value={b} class="sr-only" required />{b}</label>)}
+              </div>
+            </div>
+          </fieldset>
+
+          <fieldset class="step hidden space-y-4" data-step="3" data-name="Kontak">
+            <label class="block text-sm">Nama
+              <input name="nama" class="input mt-1.5" required autocomplete="name" placeholder="Nama Anda" />
+            </label>
+            <label class="block text-sm">Nama usaha <span class="text-mist">(opsional)</span>
+              <input name="usaha" class="input mt-1.5" autocomplete="organization" />
+            </label>
+            <label class="block text-sm">Nomor WhatsApp
+              <input name="wa" type="tel" inputmode="tel" class="input mt-1.5" required autocomplete="tel" placeholder="08xxxxxxxxxx" />
+            </label>
+            <label class="block text-sm">Email <span class="text-mist">(opsional)</span>
+              <input name="email" type="email" class="input mt-1.5" autocomplete="email" />
+            </label>
+            <label class="flex items-start gap-2 text-xs text-mist">
+              <input type="checkbox" name="setuju" required class="mt-0.5 accent-brand-500" />
+              <span>Saya setuju data ini dipakai Natakarsa Tech untuk menghubungi saya, sesuai <a href="/kebijakan-privasi" class="underline">kebijakan privasi</a>.</span>
+            </label>
+          </fieldset>
+
+          <p id="form-error" class="mt-4 hidden rounded-xl bg-red-500/10 px-4 py-2 text-sm text-red-300" role="alert"></p>
+
+          <div class="mt-6 flex gap-3">
+            <button type="button" id="btn-back" class="btn btn-ghost hidden">Kembali</button>
+            <button type="button" id="btn-next" class="btn btn-primary flex-1">Lanjut <Icon name="arrow" size={18} /></button>
+            <button type="submit" id="btn-submit" class="btn btn-primary hidden flex-1">Kirim brief <Icon name="wa" size={18} /></button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+</section>
+
+<script>
+  import { site } from '../data/site';
+  const form = document.getElementById('brief-form') as HTMLFormElement;
+  const steps = [...form.querySelectorAll<HTMLFieldSetElement>('.step')];
+  const bar = document.getElementById('step-bar')!;
+  const label = document.getElementById('step-label')!;
+  const nameEl = document.getElementById('step-name')!;
+  const err = document.getElementById('form-error')!;
+  const back = document.getElementById('btn-back')!;
+  const next = document.getElementById('btn-next')!;
+  const submit = document.getElementById('btn-submit')!;
+  let cur = 0;
+
+  const show = (i: number) => {
+    cur = i;
+    steps.forEach((s, k) => s.classList.toggle('hidden', k !== i));
+    bar.style.width = `${((i + 1) / steps.length) * 100}%`;
+    label.textContent = `Langkah ${i + 1} dari ${steps.length}`;
+    nameEl.textContent = steps[i].dataset.name!;
+    back.classList.toggle('hidden', i === 0);
+    next.classList.toggle('hidden', i === steps.length - 1);
+    submit.classList.toggle('hidden', i !== steps.length - 1);
+    err.classList.add('hidden');
+  };
+
+  const fd = () => new FormData(form);
+  const phoneOk = (v: string) => /^(\+?62|0)8\d{7,12}$/.test(v.replace(/[\s-]/g, ''));
+  const validate = (i: number): string => {
+    const d = fd();
+    if (i === 0) {
+      if (!d.get('bisnis')) return 'Pilih jenis bisnis Anda.';
+      if (String(d.get('kebutuhan') || '').trim().length < 10) return 'Ceritakan kebutuhan Anda minimal satu kalimat.';
+    }
+    if (i === 1 && !d.get('budget')) return 'Pilih perkiraan budget (boleh "Belum tahu").';
+    if (i === 2) {
+      if (String(d.get('nama') || '').trim().length < 2) return 'Isi nama Anda.';
+      if (!phoneOk(String(d.get('wa') || ''))) return 'Nomor WhatsApp belum valid. Contoh: 081234567890.';
+      const em = String(d.get('email') || '');
+      if (em && !/^\S+@\S+\.\S+$/.test(em)) return 'Format email belum valid.';
+      if (!d.get('setuju')) return 'Centang persetujuan agar kami bisa menghubungi Anda.';
+    }
+    return '';
+  };
+  const fail = (m: string) => { err.textContent = m; err.classList.remove('hidden'); };
+
+  next.addEventListener('click', () => {
+    const m = validate(cur);
+    if (m) return fail(m);
+    (window as any).track?.('form_step_complete', { step: cur + 1 });
+    show(cur + 1);
+    steps[cur].querySelector<HTMLElement>('select,input:not([type=hidden]),textarea')?.focus({ preventScroll: true });
+  });
+  back.addEventListener('click', () => show(cur - 1));
+
+  form.addEventListener('submit', (e) => {
+    e.preventDefault();
+    for (let i = 0; i < steps.length; i++) { const m = validate(i); if (m) { show(i); return fail(m); } }
+    const d = fd();
+    if (d.get('website')) return; // bot
+    const fitur = d.getAll('fitur').join(', ') || '-';
+    let utm = {};
+    try { utm = JSON.parse(localStorage.getItem('nk_utm') || '{}'); } catch {}
+    const lead = {
+      bisnis: d.get('bisnis'), kebutuhan: d.get('kebutuhan'), paket: d.get('paket'), fitur, budget: d.get('budget'),
+      nama: d.get('nama'), usaha: d.get('usaha'), wa: d.get('wa'), email: d.get('email'), utm, waktu: new Date().toISOString(),
+    };
+    const msg = `Halo Natakarsa Tech, saya ${lead.nama}${lead.usaha ? ` dari ${lead.usaha}` : ''}.\n\n` +
+      `Jenis bisnis: ${lead.bisnis}\nKebutuhan: ${lead.kebutuhan}\nPaket: ${lead.paket}\nFitur: ${fitur}\nBudget: ${lead.budget}\n\nMohon info lebih lanjut. Terima kasih.`;
+    const url = `https://wa.me/${site.whatsapp}?text=${encodeURIComponent(msg)}`;
+
+    if (site.leadEndpoint) {
+      fetch(site.leadEndpoint, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(lead), keepalive: true }).catch(() => {});
+    }
+    (window as any).track?.('lead_submit', { bisnis: lead.bisnis, budget: lead.budget, paket: lead.paket, ...utm });
+    try { sessionStorage.setItem('nk_wa', url); sessionStorage.setItem('nk_nama', String(lead.nama)); } catch {}
+    window.open(url, '_blank', 'noopener');
+    location.href = '/terima-kasih/';
+  });
+</script>

@@ -1,0 +1,68 @@
+---
+import Icon from './Icon.astro';
+import { nav, waLink } from '../data/site';
+---
+<header id="navbar" class="fixed inset-x-0 top-0 z-50 transition-all duration-500">
+  <div class="container-x">
+    <nav class="nav-inner mt-3 flex items-center justify-between rounded-full px-3 py-2 transition-all duration-500 sm:px-4" aria-label="Utama">
+      <a href="/" class="flex items-center gap-2.5 font-display text-base font-bold tracking-tight" aria-label="Natakarsa Tech, beranda">
+        <img src="/favicon.svg" alt="" width="28" height="28" class="h-7 w-7" />
+        <span>Natakarsa<span class="text-gradient"> Tech</span></span>
+      </a>
+      <ul class="hidden items-center gap-1 md:flex">
+        {nav.map((n) => <li><a href={n.href} class="rounded-full px-3.5 py-2 text-sm text-mist transition hover:bg-white/5 hover:text-snow">{n.label}</a></li>)}
+      </ul>
+      <div class="flex items-center gap-2">
+        <a href={waLink('Halo Natakarsa Tech, saya ingin konsultasi gratis.')} target="_blank" rel="noopener" data-section="navbar" class="btn btn-primary hidden !px-5 !py-2 !text-sm sm:inline-flex">Konsultasi Gratis</a>
+        <button id="menu-btn" class="grid h-10 w-10 place-items-center rounded-full border border-white/10 md:hidden" aria-label="Buka menu" aria-expanded="false" aria-controls="mobile-menu">
+          <Icon name="menu" />
+        </button>
+      </div>
+    </nav>
+  </div>
+
+  <div id="mobile-menu" class="pointer-events-none fixed inset-0 z-40 bg-ink-950/95 opacity-0 backdrop-blur-xl transition-opacity duration-300 md:hidden" aria-hidden="true">
+    <div class="flex h-full flex-col px-6 pt-24 pb-10">
+      <ul class="space-y-2">
+        {nav.map((n, i) => (
+          <li class="menu-item translate-y-4 opacity-0 transition duration-500" style={`transition-delay:${80 + i * 50}ms`}>
+            <a href={n.href} class="block py-2 font-display text-3xl font-bold">{n.label}</a>
+          </li>
+        ))}
+      </ul>
+      <a href={waLink('Halo Natakarsa Tech, saya ingin konsultasi gratis.')} target="_blank" rel="noopener" data-section="mobile-menu" class="btn btn-wa mt-auto w-full"><Icon name="wa" /> Konsultasi via WhatsApp</a>
+    </div>
+  </div>
+</header>
+
+<style>
+  #navbar.scrolled .nav-inner {
+    background: rgb(10 10 15 / 0.65);
+    border: 1px solid rgb(255 255 255 / 0.08);
+    backdrop-filter: blur(18px) saturate(1.4);
+    box-shadow: 0 10px 40px -20px rgb(0 0 0 / 0.8);
+  }
+  .nav-inner { border: 1px solid transparent; }
+  #mobile-menu.open { opacity: 1; pointer-events: auto; }
+  #mobile-menu.open .menu-item { opacity: 1; transform: none; }
+</style>
+
+<script>
+  const bar = document.getElementById('navbar')!;
+  const onScroll = () => bar.classList.toggle('scrolled', scrollY > 24);
+  onScroll();
+  addEventListener('scroll', onScroll, { passive: true });
+
+  const btn = document.getElementById('menu-btn')!;
+  const menu = document.getElementById('mobile-menu')!;
+  const setOpen = (open: boolean) => {
+    menu.classList.toggle('open', open);
+    menu.setAttribute('aria-hidden', String(!open));
+    btn.setAttribute('aria-expanded', String(open));
+    btn.setAttribute('aria-label', open ? 'Tutup menu' : 'Buka menu');
+    document.body.style.overflow = open ? 'hidden' : '';
+  };
+  btn.addEventListener('click', () => setOpen(!menu.classList.contains('open')));
+  menu.querySelectorAll('a').forEach((a) => a.addEventListener('click', () => setOpen(false)));
+  addEventListener('keydown', (e) => { if (e.key === 'Escape') setOpen(false); });
+</script>

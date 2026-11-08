@@ -1,0 +1,44 @@
+---
+import Base from '../layouts/Base.astro';
+import Hero from '../components/Hero.astro';
+import TrustBar from '../components/TrustBar.astro';
+import BeforeAfter from '../components/BeforeAfter.astro';
+import Services from '../components/Services.astro';
+import Portfolio from '../components/Portfolio.astro';
+import Stats from '../components/Stats.astro';
+import Process from '../components/Process.astro';
+import Pricing from '../components/Pricing.astro';
+import Testimonials from '../components/Testimonials.astro';
+import Compare from '../components/Compare.astro';
+import Faq from '../components/Faq.astro';
+import BriefCTA from '../components/BriefCTA.astro';
+import { site, services } from '../data/site';
+
+const serviceLd = {
+  '@context': 'https://schema.org',
+  '@type': 'ProfessionalService',
+  name: site.name,
+  url: site.url,
+  areaServed: 'ID',
+  priceRange: 'Rp1.500.000+',
+  hasOfferCatalog: {
+    '@type': 'OfferCatalog',
+    name: 'Layanan',
+    itemListElement: services.map((s) => ({ '@type': 'Offer', itemOffered: { '@type': 'Service', name: s.title, description: s.desc } })),
+  },
+};
+---
+<Base faqSchema schema={[serviceLd]}>
+  <Hero />
+  <TrustBar />
+  <BeforeAfter />
+  <Services />
+  <Portfolio />
+  <Stats />
+  <Process />
+  <Pricing />
+  <Testimonials />
+  <Compare />
+  <Faq />
+  <BriefCTA />
+</Base>

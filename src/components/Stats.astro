@@ -1,0 +1,33 @@
+---
+import { stats } from '../data/site';
+---
+<section aria-label="Angka dan dampak" class="relative py-16">
+  <div class="container-x">
+    <div class="ring-glow grid grid-cols-2 gap-px overflow-hidden rounded-3xl bg-white/5 lg:grid-cols-4">
+      {stats.map((s, i) => (
+        <div class="bg-ink-900 px-6 py-10 text-center" data-reveal style={`--d:${i}`}>
+          <div class="font-display text-4xl font-extrabold sm:text-5xl"><span class="counter text-gradient" data-to={s.value}>{s.value.toLocaleString('id-ID')}</span><span class="text-gradient">{s.suffix}</span></div>
+          <div class="mt-2 text-sm text-mist">{s.label}</div>
+        </div>
+      ))}
+    </div>
+  </div>
+</section>
+
+<script>
+  const els = document.querySelectorAll<HTMLElement>('.counter');
+  const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const io = new IntersectionObserver((es) => es.forEach((e) => {
+    if (!e.isIntersecting) return;
+    io.unobserve(e.target);
+    const el = e.target as HTMLElement, to = Number(el.dataset.to), t0 = performance.now();
+    if (reduce) return;
+    const tick = (t: number) => {
+      const k = Math.min(1, (t - t0) / 1600), v = Math.round(to * (1 - Math.pow(1 - k, 3)));
+      el.textContent = v.toLocaleString('id-ID');
+      if (k < 1) requestAnimationFrame(tick);
+    };
+    requestAnimationFrame(tick);
+  }), { threshold: 0.5 });
+  els.forEach((el) => io.observe(el));
+</script>

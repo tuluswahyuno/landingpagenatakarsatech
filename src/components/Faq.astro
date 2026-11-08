@@ -1,0 +1,28 @@
+---
+import { faqs } from '../data/site';
+---
+<section id="faq" class="section">
+  <div class="container-x grid gap-12 lg:grid-cols-[0.8fr_1.2fr]">
+    <div>
+      <span class="eyebrow" data-reveal>FAQ</span>
+      <h2 class="h-section" data-reveal style="--d:1">Pertanyaan yang <span class="text-gradient">sering ditanyakan.</span></h2>
+      <p class="lead" data-reveal style="--d:2">Belum terjawab? Tanya langsung lewat WhatsApp, kami balas di jam kerja maksimal 15 menit.</p>
+    </div>
+    <div class="space-y-3">
+      {faqs.map((f, i) => (
+        <details class="faq card group overflow-hidden" data-reveal style={`--d:${i % 4}`} name="faq">
+          <summary class="flex cursor-pointer list-none items-center justify-between gap-4 p-5 font-medium [&::-webkit-details-marker]:hidden">
+            {f.q}
+            <span class="grid h-8 w-8 shrink-0 place-items-center rounded-full border border-white/10 text-lg transition duration-300 group-open:rotate-45">+</span>
+          </summary>
+          <div class="faq-body px-5 pb-5 text-sm leading-relaxed text-mist">{f.a}</div>
+        </details>
+      ))}
+    </div>
+  </div>
+</section>
+
+<style>
+  .faq::details-content { block-size: 0; transition: block-size 0.4s var(--ease-out-expo), content-visibility 0.4s allow-discrete; }
+  .faq[open]::details-content { block-size: auto; }
+</style>

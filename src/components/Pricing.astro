@@ -1,0 +1,113 @@
+---
+import Icon from './Icon.astro';
+import { packages, addons, calculator, waLink } from '../data/site';
+---
+<section id="harga" class="section">
+  <div class="container-x">
+    <div class="mx-auto max-w-3xl text-center">
+      <span class="eyebrow" data-reveal>Paket & harga</span>
+      <h2 class="h-section" data-reveal style="--d:1">Harga transparan, <span class="text-gradient">tanpa biaya tersembunyi.</span></h2>
+      <p class="lead mx-auto" data-reveal style="--d:2">Harga final ditentukan setelah konsultasi gratis, dan tertulis di proposal sebelum pekerjaan dimulai.</p>
+    </div>
+
+    <div class="mt-14 grid gap-5 lg:grid-cols-3">
+      {packages.map((p, i) => (
+        <div class:list={['relative flex flex-col rounded-3xl p-7', p.popular ? 'ring-glow bg-gradient-to-b from-brand-600/20 to-ink-850 lg:-my-4 lg:py-11' : 'card']} data-reveal style={`--d:${i}`}>
+          {p.popular && <span class="absolute -top-3 left-7 rounded-full bg-snow px-3 py-1 text-xs font-bold text-ink-950">Paling Populer</span>}
+          <h3 class="text-xl font-semibold">{p.name}</h3>
+          <p class="mt-1 text-sm text-mist">{p.for}</p>
+          <div class="mt-6 flex items-baseline gap-2">
+            {p.prefix && <span class="text-sm text-mist">{p.prefix}</span>}
+            <span class="font-display text-4xl font-extrabold">{p.price}</span>
+          </div>
+          <ul class="mt-6 space-y-3 text-sm">
+            {p.features.map((f) => <li class="flex gap-2.5"><Icon name="check" size={18} class="mt-0.5 shrink-0 text-aqua" /><span class="text-snow/90">{f}</span></li>)}
+          </ul>
+          <a href={`#brief`} data-paket={p.name} class:list={['pick-pkg btn mt-8 w-full', p.popular ? 'btn-primary' : 'btn-ghost']}>
+            {p.price === 'Konsultasi' ? 'Jadwalkan konsultasi' : `Pilih paket ${p.name}`}
+          </a>
+        </div>
+      ))}
+    </div>
+
+    <div class="mt-10 flex flex-wrap justify-center gap-3 text-sm" data-reveal>
+      {addons.map((a) => <span class="chip !px-4 !py-1.5"><strong class="mr-1 font-medium text-snow">{a.name}</strong> {a.price}</span>)}
+    </div>
+    <p class="mt-4 text-center text-sm text-mist" data-reveal>Pembayaran bertahap: DP 50%, pelunasan saat serah terima. Source code jadi milik Anda.</p>
+
+    <!-- Kalkulator -->
+    <div id="kalkulator" class="card mt-20 grid gap-8 p-6 sm:p-10 lg:grid-cols-[1.2fr_1fr]" data-reveal>
+      <div>
+        <span class="eyebrow"><Icon name="calc" size={14} /> Kalkulator estimasi</span>
+        <h3 class="mt-4 text-2xl font-bold sm:text-3xl">Berapa kira-kira biaya sistem Anda?</h3>
+        <fieldset class="mt-6">
+          <legend class="text-sm font-medium text-mist">1. Jenis sistem</legend>
+          <div class="mt-3 grid gap-2 sm:grid-cols-3">
+            {calculator.bases.map((b, i) => (
+              <label class="calc-opt cursor-pointer rounded-2xl border border-white/10 p-3 text-sm transition has-[:checked]:border-brand-400 has-[:checked]:bg-brand-500/10">
+                <input type="radio" name="base" value={b.id} class="sr-only" checked={i === 1} data-min={b.min} data-max={b.max} data-w0={b.weeks[0]} data-w1={b.weeks[1]} data-label={b.label} />
+                {b.label}
+              </label>
+            ))}
+          </div>
+        </fieldset>
+        <fieldset class="mt-6">
+          <legend class="text-sm font-medium text-mist">2. Modul yang dibutuhkan</legend>
+          <div class="mt-3 grid gap-2 sm:grid-cols-2">
+            {calculator.modules.map((m) => (
+              <label class="flex cursor-pointer items-center gap-3 rounded-xl border border-white/10 px-3 py-2.5 text-sm transition has-[:checked]:border-brand-400 has-[:checked]:bg-brand-500/10">
+                <input type="checkbox" name="module" value={m.id} data-min={m.min} data-max={m.max} data-label={m.label} class="h-4 w-4 accent-brand-500" />
+                {m.label}
+              </label>
+            ))}
+          </div>
+        </fieldset>
+      </div>
+      <div class="flex flex-col justify-center rounded-3xl bg-gradient-to-br from-brand-600/25 via-ink-800 to-cyan-500/10 p-6 ring-1 ring-white/10 sm:p-8">
+        <div class="text-sm text-mist">Perkiraan biaya</div>
+        <output id="calc-price" class="mt-2 font-display text-3xl font-extrabold sm:text-4xl" aria-live="polite">Rp7,5 – 12 juta</output>
+        <div class="mt-4 text-sm text-mist">Perkiraan waktu</div>
+        <output id="calc-time" class="mt-1 text-lg font-semibold">3–5 minggu</output>
+        <p class="mt-4 text-xs text-mist">Estimasi kasar. Harga pasti diberikan setelah konsultasi gratis.</p>
+        <a id="calc-wa" href={waLink('Halo Natakarsa Tech')} target="_blank" rel="noopener" data-section="kalkulator" class="btn btn-wa mt-6 w-full"><Icon name="wa" /> Kirim estimasi via WhatsApp</a>
+        <a href="#brief" id="calc-brief" class="mt-3 text-center text-sm text-brand-300 underline-offset-4 hover:underline">atau isi brief lengkap</a>
+      </div>
+    </div>
+  </div>
+</section>
+
+<script>
+  import { site } from '../data/site';
+  const fmt = (n: number) => (Number.isInteger(n) ? String(n) : n.toFixed(1).replace('.', ','));
+  const price = document.getElementById('calc-price')!;
+  const time = document.getElementById('calc-time')!;
+  const wa = document.getElementById('calc-wa') as HTMLAnchorElement;
+  const box = document.getElementById('kalkulator')!;
+  let last = '';
+  const calc = () => {
+    const base = box.querySelector<HTMLInputElement>('input[name=base]:checked')!;
+    const mods = [...box.querySelectorAll<HTMLInputElement>('input[name=module]:checked')];
+    let min = +base.dataset.min!, max = +base.dataset.max!;
+    mods.forEach((m) => { min += +m.dataset.min!; max += +m.dataset.max!; });
+    const w0 = +base.dataset.w0! + Math.floor(mods.length / 2), w1 = +base.dataset.w1! + mods.length;
+    const p = `Rp${fmt(min)} – ${fmt(max)} juta`;
+    const t = w1 <= 1 ? '3–7 hari kerja' : `${w0}–${w1} minggu`;
+    price.textContent = p; time.textContent = t;
+    const list = mods.map((m) => `- ${m.dataset.label}`).join('\n');
+    last = `Jenis: ${base.dataset.label}${mods.length ? `\nModul:\n${list}` : ''}\nEstimasi: ${p}, ${t}`;
+    wa.href = `https://wa.me/${site.whatsapp}?text=${encodeURIComponent(`Halo Natakarsa Tech, saya sudah coba kalkulator di website.\n\n${last}\n\nBoleh dibantu konsultasi?`)}`;
+  };
+  box.addEventListener('change', () => { calc(); (window as any).track?.('calculator_result', { estimasi: price.textContent }); });
+  calc();
+  document.getElementById('calc-brief')!.addEventListener('click', () => {
+    const t = document.querySelector<HTMLTextAreaElement>('#brief textarea[name=kebutuhan]');
+    if (t && !t.value) t.value = `Dari kalkulator:\n${last}`;
+  });
+
+  // Tombol "Pilih paket" mengisi otomatis formulir brief
+  document.querySelectorAll<HTMLAnchorElement>('.pick-pkg').forEach((a) => a.addEventListener('click', () => {
+    const sel = document.querySelector<HTMLSelectElement>('#brief select[name=paket]');
+    if (sel) sel.value = a.dataset.paket!;
+    (window as any).track?.('pricing_select', { paket: a.dataset.paket });
+  }));
+</script>

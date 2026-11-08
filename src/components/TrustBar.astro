@@ -1,0 +1,13 @@
+---
+import { industries } from '../data/site';
+// TODO: bila klien sudah mengizinkan, ganti daftar industri dengan logo klien (SVG di public/clients/)
+const items = [...industries, ...industries];
+---
+<section aria-label="Industri yang kami layani" class="border-y border-white/5 bg-ink-950/50 py-8">
+  <p class="container-x mb-5 text-center text-xs font-medium tracking-[0.2em] text-mist uppercase">Dipercaya berbagai industri</p>
+  <div class="marquee overflow-hidden">
+    <ul class="marquee-track flex w-max gap-12 pr-12">
+      {items.map((t, i) => <li class="font-display text-xl font-semibold whitespace-nowrap text-white/35 sm:text-2xl" aria-hidden={i >= industries.length ? 'true' : undefined}>{t}</li>)}
+    </ul>
+  </div>
+</section>

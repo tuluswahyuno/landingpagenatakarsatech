@@ -1,0 +1,43 @@
+---
+import Icon from './Icon.astro';
+import { waLink } from '../data/site';
+---
+<a
+  id="float-wa"
+  href={waLink('Halo Natakarsa Tech, saya ingin konsultasi.')}
+  target="_blank"
+  rel="noopener"
+  data-section="floating"
+  class="group fixed right-4 bottom-4 z-40 flex translate-y-24 items-center gap-2 rounded-full bg-wa p-3.5 text-ink-950 opacity-0 shadow-[0_10px_40px_-8px_rgb(37_211_102/0.7)] transition-all duration-500 sm:right-6 sm:bottom-6"
+  aria-label="Chat WhatsApp"
+>
+  <span class="absolute inset-0 -z-10 animate-ping rounded-full bg-wa/40 [animation-duration:2.4s]"></span>
+  <Icon name="wa" size={26} />
+  <span class="hidden max-w-0 overflow-hidden text-sm font-semibold whitespace-nowrap transition-all duration-500 group-hover:max-w-40 sm:inline">Tanya sekarang</span>
+</a>
+
+<script>
+  import { site } from '../data/site';
+  const btn = document.getElementById('float-wa') as HTMLAnchorElement;
+  const show = () => {
+    const pct = scrollY / Math.max(1, document.documentElement.scrollHeight - innerHeight);
+    const on = pct > 0.2;
+    btn.classList.toggle('opacity-0', !on);
+    btn.classList.toggle('translate-y-24', !on);
+  };
+  addEventListener('scroll', show, { passive: true });
+  show();
+
+  // Pesan WhatsApp mengikuti section terakhir yang dilihat
+  const msgs: Record<string, string> = {
+    layanan: 'Halo Natakarsa Tech, saya ingin tanya soal layanan pembuatan sistem.',
+    portofolio: 'Halo Natakarsa Tech, saya tertarik dengan portofolio Anda dan ingin dibuatkan sistem serupa.',
+    proses: 'Halo Natakarsa Tech, saya ingin tahu proses kerja pembuatan sistemnya.',
+    harga: 'Halo Natakarsa Tech, saya ingin tanya paket dan harga.',
+    faq: 'Halo Natakarsa Tech, saya punya pertanyaan.',
+  };
+  const io = new IntersectionObserver((es) => es.forEach((e) => {
+    if (e.isIntersecting && msgs[e.target.id]) btn.href = `https://wa.me/${site.whatsapp}?text=${encodeURIComponent(msgs[e.target.id])}`;
+  }), { threshold: 0.3 });
+  Object.keys(msgs).forEach((id) => { const el = document.getElementById(id); if (el) io.observe(el); });
+</script>

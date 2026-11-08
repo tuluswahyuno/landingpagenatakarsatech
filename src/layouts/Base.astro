@@ -1,0 +1,113 @@
+---
+import '@fontsource-variable/inter';
+import '@fontsource-variable/plus-jakarta-sans';
+import '../styles/global.css';
+import Navbar from '../components/Navbar.astro';
+import Footer from '../components/Footer.astro';
+import FloatingWA from '../components/FloatingWA.astro';
+import { site, faqs } from '../data/site';
+
+interface Props {
+  title?: string;
+  description?: string;
+  image?: string;
+  schema?: Record<string, unknown>[];
+  faqSchema?: boolean;
+}
+const { title = site.title, description = site.description, image = '/og.png', schema = [], faqSchema = false } = Astro.props;
+const canonical = new URL(Astro.url.pathname, Astro.site ?? site.url).href;
+const ogImage = new URL(image, Astro.site ?? site.url).href;
+
+const org = {
+  '@context': 'https://schema.org',
+  '@type': 'Organization',
+  name: site.name,
+  url: site.url,
+  email: site.email,
+  logo: new URL('/favicon.svg', site.url).href,
+  sameAs: site.socials.map((s) => s.href),
+};
+const faqLd = faqSchema
+  ? {
+      '@context': 'https://schema.org',
+      '@type': 'FAQPage',
+      mainEntity: faqs.map((f) => ({ '@type': 'Question', name: f.q, acceptedAnswer: { '@type': 'Answer', text: f.a } })),
+    }
+  : null;
+const ld = [org, ...(faqLd ? [faqLd] : []), ...schema];
+---
+<!doctype html>
+<html lang="id" class="no-js">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{title}</title>
+    <meta name="description" content={description} />
+    <link rel="canonical" href={canonical} />
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <meta name="theme-color" content="#0a0a0f" />
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content={site.name} />
+    <meta property="og:title" content={title} />
+    <meta property="og:description" content={description} />
+    <meta property="og:url" content={canonical} />
+    <meta property="og:image" content={ogImage} />
+    <meta property="og:locale" content="id_ID" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <script is:inline>document.documentElement.classList.remove('no-js');</script>
+    {ld.map((obj) => <script type="application/ld+json" set:html={JSON.stringify(obj)} />)}
+    <slot name="head" />
+  </head>
+  <body class="min-h-dvh overflow-x-clip">
+    <a href="#main" class="sr-only focus:not-sr-only focus:fixed focus:top-3 focus:left-3 focus:z-[100] focus:rounded-lg focus:bg-brand-600 focus:px-4 focus:py-2">Lewati ke konten</a>
+    <Navbar />
+    <main id="main">
+      <slot />
+    </main>
+    <Footer />
+    <FloatingWA />
+
+    <script>
+      // ---- Analytics helper: kirim event ke dataLayer (GA4/GTM) bila terpasang ----
+      const w = window as any;
+      w.dataLayer = w.dataLayer || [];
+      w.track = (event: string, params: Record<string, unknown> = {}) => {
+        w.dataLayer.push({ event, ...params });
+        if (typeof w.umami?.track === 'function') w.umami.track(event, params);
+      };
+
+      // ---- Simpan UTM kunjungan pertama ----
+      try {
+        const p = new URLSearchParams(location.search);
+        const utm: Record<string, string> = {};
+        ['utm_source', 'utm_medium', 'utm_campaign', 'utm_content'].forEach((k) => { const v = p.get(k); if (v) utm[k] = v; });
+        if (Object.keys(utm).length && !localStorage.getItem('nk_utm')) localStorage.setItem('nk_utm', JSON.stringify(utm));
+      } catch {}
+
+      // ---- Reveal on scroll ----
+      const io = new IntersectionObserver(
+        (entries) => entries.forEach((e) => { if (e.isIntersecting) { e.target.classList.add('is-in'); io.unobserve(e.target); } }),
+        { rootMargin: '0px 0px -8% 0px', threshold: 0.08 }
+      );
+      document.querySelectorAll('[data-reveal]').forEach((el) => {
+        // Elemen yang sudah terlihat saat halaman dibuka langsung ditampilkan
+        if (el.getBoundingClientRect().top < innerHeight) el.classList.add('is-in');
+        else io.observe(el);
+      });
+
+      // ---- Klik semua link WhatsApp tercatat ----
+      document.addEventListener('click', (e) => {
+        const a = (e.target as HTMLElement).closest('a[href^="https://wa.me"]') as HTMLAnchorElement | null;
+        if (a) w.track('cta_whatsapp_click', { section: a.dataset.section || a.closest('section')?.id || 'global' });
+      });
+
+      // ---- Scroll depth ----
+      const marks = [25, 50, 75, 100];
+      const hit = new Set<number>();
+      addEventListener('scroll', () => {
+        const pct = ((scrollY + innerHeight) / document.documentElement.scrollHeight) * 100;
+        marks.forEach((m) => { if (pct >= m && !hit.has(m)) { hit.add(m); w.track('scroll_depth', { percent: m }); } });
+      }, { passive: true });
+    </script>
+  </body>
+</html>

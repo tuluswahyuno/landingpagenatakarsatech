@@ -1,0 +1,117 @@
+---
+import { getCollection, render } from 'astro:content';
+import Base from '../../layouts/Base.astro';
+import Icon from '../../components/Icon.astro';
+import AppMockup from '../../components/AppMockup.astro';
+import { waLink, site } from '../../data/site';
+
+export async function getStaticPaths() {
+  const all = (await getCollection('portfolio')).sort((a, b) => a.data.order - b.data.order);
+  return all.map((entry, i) => ({ params: { slug: entry.id }, props: { entry, next: all[(i + 1) % all.length] } }));
+}
+const { entry, next } = Astro.props;
+const d = entry.data;
+const { Content } = await render(entry);
+const msg = `Halo Natakarsa Tech, saya tertarik dibuatkan sistem seperti "${d.title}". Boleh konsultasi?`;
+const ld = {
+  '@context': 'https://schema.org',
+  '@type': 'CreativeWork',
+  name: d.title,
+  description: d.summary,
+  dateCreated: String(d.year),
+  creator: { '@type': 'Organization', name: site.name },
+};
+---
+<Base title={`${d.title} — Studi Kasus | Natakarsa Tech`} description={d.summary} schema={[ld]}>
+  <article class="relative overflow-hidden pt-32 pb-20 sm:pt-40">
+    <div class="pointer-events-none absolute inset-x-0 top-0 h-[70vh] opacity-60 blur-3xl" style={`background:radial-gradient(50% 50% at 50% 0%, ${d.accent}55, transparent 70%)`} aria-hidden="true"></div>
+    <div class="container-x relative">
+      <a href="/#portofolio" class="inline-flex items-center gap-2 text-sm text-mist hover:text-snow"><Icon name="arrow-left" size={16} /> Semua portofolio</a>
+      <div class="mt-8 grid items-center gap-12 lg:grid-cols-2">
+        <div>
+          <div class="flex flex-wrap items-center gap-2 text-sm text-mist">
+            <span>{d.industry}</span><span>·</span><span>{d.client}</span><span>·</span><span>{d.year}</span>
+            {d.contoh && <span class="badge-contoh">Contoh</span>}
+          </div>
+          <h1 class="mt-3 text-4xl font-extrabold sm:text-6xl">{d.title}</h1>
+          <p class="mt-5 text-lg text-mist">{d.summary}</p>
+          <div class="mt-8 flex flex-col gap-3 sm:flex-row">
+            <a href={waLink(msg)} target="_blank" rel="noopener" data-section="studi-kasus" class="btn btn-wa"><Icon name="wa" /> Saya mau sistem seperti ini</a>
+            {d.demoUrl && <a href={d.demoUrl} target="_blank" rel="noopener" class="btn btn-ghost demo-link"><Icon name="play" size={16} /> Coba demo</a>}
+          </div>
+        </div>
+        <div style={`view-transition-name: pf-${entry.id}`}>
+          {d.images[0]
+            ? <img src={d.images[0]} alt={`Tampilan ${d.title}`} width="1200" height="750" class="rounded-2xl border border-white/10" fetchpriority="high" />
+            : <AppMockup variant={d.mockup} accent={d.accent} title={d.title} />}
+        </div>
+      </div>
+
+      <div class="mt-16 grid grid-cols-1 gap-px overflow-hidden rounded-3xl bg-white/5 sm:grid-cols-3">
+        {d.metrics.map((m) => (
+          <div class="bg-ink-900 p-8 text-center">
+            <div class="font-display text-3xl font-extrabold" style={`color:${d.accent}`}>{m.value}</div>
+            <div class="mt-1 text-sm text-mist">{m.label}</div>
+          </div>
+        ))}
+      </div>
+
+      <div class="mt-16 grid gap-12 lg:grid-cols-[1.4fr_1fr]">
+        <div class="prose-case">
+          <Content />
+        </div>
+        <aside class="space-y-6">
+          <div class="card p-6">
+            <h2 class="text-base font-semibold">Fitur utama</h2>
+            <ul class="mt-4 space-y-2.5 text-sm">
+              {d.features.map((f) => <li class="flex gap-2"><span class="mt-0.5 shrink-0" style={`color:${d.accent}`}><Icon name="check" size={18} /></span>{f}</li>)}
+            </ul>
+          </div>
+          <div class="card p-6">
+            <h2 class="text-base font-semibold">Teknologi</h2>
+            <div class="mt-4 flex flex-wrap gap-2">{d.stack.map((s) => <span class="chip">{s}</span>)}</div>
+          </div>
+          {d.testimonial && (
+            <figure class="card p-6">
+              <blockquote class="text-snow/90">“{d.testimonial.quote}”</blockquote>
+              <figcaption class="mt-3 text-sm text-mist">{d.testimonial.name}, {d.testimonial.role}</figcaption>
+            </figure>
+          )}
+        </aside>
+      </div>
+
+      {d.images.length > 1 && (
+        <div class="mt-16 grid gap-4 sm:grid-cols-2">
+          {d.images.slice(1).map((src) => <img src={src} alt={`Tampilan ${d.title}`} loading="lazy" decoding="async" class="rounded-2xl border border-white/10" />)}
+        </div>
+      )}
+
+      <div class="ring-glow mt-20 flex flex-col items-center gap-6 rounded-3xl bg-gradient-to-br from-brand-600/20 to-ink-850 p-10 text-center">
+        <h2 class="text-2xl font-bold sm:text-3xl">Bisnis Anda punya masalah serupa?</h2>
+        <p class="max-w-xl text-mist">Kami bisa membangun sistem yang disesuaikan dengan alur kerja Anda. Konsultasi gratis.</p>
+        <div class="flex flex-col gap-3 sm:flex-row">
+          <a href={waLink(msg)} target="_blank" rel="noopener" data-section="studi-kasus-bawah" class="btn btn-wa"><Icon name="wa" /> Konsultasi via WhatsApp</a>
+          <a href="/#brief" class="btn btn-ghost">Isi brief</a>
+        </div>
+      </div>
+
+      <a href={`/portofolio/${next.id}/`} class="group mt-12 flex items-center justify-between rounded-3xl border border-white/10 p-6 transition hover:border-white/25">
+        <span><span class="block text-xs text-mist">Studi kasus berikutnya</span><span class="mt-1 block text-xl font-semibold">{next.data.title}</span></span>
+        <Icon name="arrow" class="transition group-hover:translate-x-1" />
+      </a>
+    </div>
+  </article>
+</Base>
+
+<script>
+  const id = location.pathname.split('/').filter(Boolean).pop();
+  (window as any).track?.('case_study_view', { slug: id });
+  document.querySelector('.demo-link')?.addEventListener('click', () => (window as any).track?.('demo_open', { slug: id }));
+</script>
+
+<style is:global>
+  .prose-case h2 { font-size: 1.5rem; font-weight: 700; margin-top: 2.5rem; color: var(--color-snow); }
+  .prose-case h2:first-child { margin-top: 0; }
+  .prose-case p { margin-top: 0.75rem; color: var(--color-mist); font-size: 1.0625rem; line-height: 1.75; }
+  .prose-case ul { margin-top: 0.75rem; padding-left: 1.25rem; list-style: disc; color: var(--color-mist); }
+</style>

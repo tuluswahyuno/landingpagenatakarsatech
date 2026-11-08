@@ -1,0 +1,35 @@
+---
+import { site, nav, waLink } from '../data/site';
+const year = new Date().getFullYear();
+---
+<footer class="border-t border-white/5 bg-ink-950">
+  <div class="container-x grid gap-10 py-14 sm:grid-cols-2 lg:grid-cols-4">
+    <div class="lg:col-span-2">
+      <a href="/" class="flex items-center gap-2.5 font-display text-lg font-bold">
+        <img src="/favicon.svg" alt="" width="28" height="28" class="h-7 w-7" />
+        Natakarsa<span class="text-gradient -ml-1.5"> Tech</span>
+      </a>
+      <p class="mt-4 max-w-sm text-sm text-mist">Partner otomasi bisnis. Kami membangun sistem custom yang membuat usaha Anda berjalan rapi, cepat, dan terukur.</p>
+    </div>
+    <div>
+      <h3 class="text-sm font-semibold text-snow">Menu</h3>
+      <ul class="mt-4 space-y-2 text-sm text-mist">
+        {nav.map((n) => <li><a href={n.href} class="hover:text-snow">{n.label}</a></li>)}
+        <li><a href="/kebijakan-privasi" class="hover:text-snow">Kebijakan privasi</a></li>
+      </ul>
+    </div>
+    <div>
+      <h3 class="text-sm font-semibold text-snow">Kontak</h3>
+      <ul class="mt-4 space-y-2 text-sm text-mist">
+        <li><a href={waLink('Halo Natakarsa Tech')} target="_blank" rel="noopener" data-section="footer" class="hover:text-snow">WhatsApp: +{site.whatsapp}</a></li>
+        <li><a href={`mailto:${site.email}`} class="hover:text-snow">{site.email}</a></li>
+        <li>{site.address}</li>
+        <li>{site.hours}</li>
+      </ul>
+      <div class="mt-4 flex flex-wrap gap-2">
+        {site.socials.map((s) => <a href={s.href} target="_blank" rel="noopener" class="chip hover:text-snow">{s.label}</a>)}
+      </div>
+    </div>
+  </div>
+  <div class="border-t border-white/5 py-6 text-center text-xs text-mist">© {year} {site.legal}. Semua hak dilindungi.</div>
+</footer>

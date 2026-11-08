@@ -1,0 +1,29 @@
+---
+import Icon from './Icon.astro';
+import { testimonials } from '../data/site';
+---
+{testimonials.length > 0 && (
+<section id="testimoni" class="section">
+  <div class="container-x">
+    <div class="max-w-3xl">
+      <span class="eyebrow" data-reveal>Testimoni</span>
+      <h2 class="h-section" data-reveal style="--d:1">Kata mereka yang <span class="text-gradient">bisnisnya sudah otomatis.</span></h2>
+    </div>
+    <div class="-mx-4 mt-12 flex snap-x snap-mandatory gap-5 overflow-x-auto px-4 pb-4 [scrollbar-width:none] md:mx-0 md:grid md:grid-cols-3 md:overflow-visible md:px-0">
+      {testimonials.map((t, i) => (
+        <figure class="card flex w-[85%] shrink-0 snap-center flex-col p-7 md:w-auto" data-reveal style={`--d:${i}`}>
+          <div class="flex items-center gap-1 text-amber-300">
+            {[0, 1, 2, 3, 4].map(() => <Icon name="star" size={16} class="fill-current" />)}
+            {t.contoh && <span class="badge-contoh ml-auto" title="Contoh, akan diganti testimoni asli">Contoh</span>}
+          </div>
+          <blockquote class="mt-5 flex-1 text-lg leading-relaxed text-snow/90">“{t.quote}”</blockquote>
+          <figcaption class="mt-6 flex items-center gap-3 border-t border-white/5 pt-5">
+            <span class="grid h-10 w-10 place-items-center rounded-full bg-gradient-to-br from-brand-500 to-aqua font-bold text-ink-950">{t.name[0]}</span>
+            <span><span class="block text-sm font-semibold">{t.name}</span><span class="block text-xs text-mist">{t.role}</span></span>
+          </figcaption>
+        </figure>
+      ))}
+    </div>
+  </div>
+</section>
+)}

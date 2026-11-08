@@ -1,0 +1,5 @@
+User-agent: *
+Allow: /
+Disallow: /terima-kasih/
+
+Sitemap: https://natakarsa.tech/sitemap-index.xml
