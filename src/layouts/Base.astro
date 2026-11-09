@@ -45,7 +45,7 @@ const ld = [org, ...(faqLd ? [faqLd] : []), ...schema];
     <meta name="description" content={description} />
     <link rel="canonical" href={canonical} />
     <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
-    <meta name="theme-color" content="#0a0a0f" />
+    <meta name="theme-color" content="#0a0a0f" id="meta-theme" />
     <meta property="og:type" content="website" />
     <meta property="og:site_name" content={site.name} />
     <meta property="og:title" content={title} />
@@ -54,7 +54,18 @@ const ld = [org, ...(faqLd ? [faqLd] : []), ...schema];
     <meta property="og:image" content={ogImage} />
     <meta property="og:locale" content="id_ID" />
     <meta name="twitter:card" content="summary_large_image" />
-    <script is:inline>document.documentElement.classList.remove('no-js');</script>
+    <script is:inline>
+      // Pasang tema sebelum halaman tampil (mencegah kilatan warna)
+      (function () {
+        var d = document.documentElement, t;
+        d.classList.remove('no-js');
+        try { t = localStorage.getItem('nk_theme'); } catch (e) {}
+        if (t !== 'light' && t !== 'dark') t = matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark';
+        d.dataset.theme = t;
+        var m = document.getElementById('meta-theme');
+        if (m) m.setAttribute('content', t === 'light' ? '#f7f8fb' : '#0a0a0f');
+      })();
+    </script>
     {ld.map((obj) => <script type="application/ld+json" set:html={JSON.stringify(obj)} />)}
     <slot name="head" />
   </head>
@@ -93,6 +104,34 @@ const ld = [org, ...(faqLd ? [faqLd] : []), ...schema];
         // Elemen yang sudah terlihat saat halaman dibuka langsung ditampilkan
         if (el.getBoundingClientRect().top < innerHeight) el.classList.add('is-in');
         else io.observe(el);
+      });
+
+      // ---- Ganti tema terang / gelap ----
+      const root = document.documentElement;
+      const meta = document.getElementById('meta-theme');
+      const applyTheme = (t: 'light' | 'dark', animate = true) => {
+        if (animate) { root.classList.add('theme-anim'); setTimeout(() => root.classList.remove('theme-anim'), 400); }
+        root.dataset.theme = t;
+        meta?.setAttribute('content', t === 'light' ? '#f7f8fb' : '#0a0a0f');
+        document.querySelectorAll<HTMLButtonElement>('[data-theme-toggle]').forEach((b) => {
+          b.setAttribute('aria-label', t === 'light' ? 'Ganti ke mode gelap' : 'Ganti ke mode terang');
+          b.setAttribute('aria-pressed', String(t === 'light'));
+        });
+      };
+      applyTheme((root.dataset.theme as 'light' | 'dark') || 'dark', false);
+      document.addEventListener('click', (e) => {
+        const btn = (e.target as HTMLElement).closest('[data-theme-toggle]');
+        if (!btn) return;
+        const next = root.dataset.theme === 'light' ? 'dark' : 'light';
+        applyTheme(next);
+        try { localStorage.setItem('nk_theme', next); } catch {}
+        w.track('theme_toggle', { theme: next });
+      });
+      // Ikuti perubahan tema sistem selama pengunjung belum memilih sendiri
+      matchMedia('(prefers-color-scheme: light)').addEventListener('change', (e) => {
+        let saved = null;
+        try { saved = localStorage.getItem('nk_theme'); } catch {}
+        if (!saved) applyTheme(e.matches ? 'light' : 'dark');
       });
 
       // ---- Klik semua link WhatsApp tercatat ----

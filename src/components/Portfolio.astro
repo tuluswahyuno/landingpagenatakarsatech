@@ -24,7 +24,7 @@ const items = (await getCollection('portfolio')).sort((a, b) => a.data.order - b
       {items.map((p, i) => (
         <a href={`/portofolio/${p.id}/`} class="pf-card tilt-card group card relative flex flex-col overflow-hidden transition hover:border-white/20" data-category={p.data.category} data-reveal style={`--d:${i % 3}`}>
           <div class="tilt-glow pointer-events-none absolute inset-0 z-10 opacity-0 transition group-hover:opacity-100"></div>
-          <div class="relative h-56 overflow-hidden p-5" style={`background:radial-gradient(120% 90% at 30% 0%, ${p.data.accent}33, transparent 60%), #0d0d14`}>
+          <div class="relative h-56 overflow-hidden p-5" style={`background:radial-gradient(120% 90% at 30% 0%, ${p.data.accent}33, transparent 60%), var(--pf-bg)`}>
             <div class="transition duration-700 ease-out group-hover:-translate-y-2 group-hover:scale-[1.03]" style={`view-transition-name: pf-${p.id}`}>
               {p.data.images[0]
                 ? <img src={p.data.images[0]} alt={`Tampilan ${p.data.title}`} loading="lazy" decoding="async" width="640" height="400" class="rounded-xl border border-white/10" />
@@ -54,8 +54,8 @@ const items = (await getCollection('portfolio')).sort((a, b) => a.data.order - b
 </section>
 
 <style>
-  .filter-btn { border-color: rgb(255 255 255 / 0.1); color: var(--color-mist); }
-  .filter-btn:hover { color: var(--color-snow); border-color: rgb(255 255 255 / 0.25); }
+  .filter-btn { border-color: color-mix(in oklab, var(--color-white) 12%, transparent); color: var(--color-mist); }
+  .filter-btn:hover { color: var(--color-snow); border-color: color-mix(in oklab, var(--color-white) 28%, transparent); }
   .filter-btn.is-active { background: var(--color-snow); color: var(--color-ink-950); border-color: var(--color-snow); }
   .pf-card.is-hidden { display: none; }
 </style>
