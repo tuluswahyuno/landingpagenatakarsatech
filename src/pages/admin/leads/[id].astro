@@ -1,0 +1,162 @@
+---
+import Admin from '../../../layouts/Admin.astro';
+import Icon from '../../../components/Icon.astro';
+import { query, one, exec } from '../../../lib/server/db';
+import { STATUSES, addNote } from '../../../lib/server/leads';
+import { fmtDate } from '../../../lib/server/http';
+import { waUrl, BRAND } from '../../../lib/server/notify';
+
+const user = Astro.locals.user!;
+const id = Number(Astro.params.id);
+if (!Number.isInteger(id) || id < 1) return new Response('Lead tidak ditemukan', { status: 404 });
+
+let error = '';
+if (Astro.request.method === 'POST') {
+  const form = await Astro.request.formData();
+  const action = String(form.get('action'));
+  const lead = await one<any>('SELECT status, assigned_to FROM leads WHERE id = ?', [id]);
+  if (!lead) return new Response('Lead tidak ditemukan', { status: 404 });
+
+  if (action === 'status') {
+    const status = String(form.get('status'));
+    if ((STATUSES as readonly string[]).includes(status) && status !== lead.status) {
+      await exec('UPDATE leads SET status = ? WHERE id = ?', [status, id]);
+      await addNote(id, user.id, `Status: ${lead.status} → ${status}`);
+    }
+    return Astro.redirect(`/admin/leads/${id}?ok=status`, 303);
+  }
+  if (action === 'assign') {
+    const to = Number(form.get('assigned_to')) || null;
+    const target = to ? await one<any>('SELECT name FROM users WHERE id = ? AND active = 1', [to]) : null;
+    if (to && !target) error = 'Pengguna tidak ditemukan.';
+    else {
+      await exec('UPDATE leads SET assigned_to = ? WHERE id = ?', [to, id]);
+      await addNote(id, user.id, to ? `Ditugaskan ke ${target.name}` : 'Penugasan dihapus');
+      return Astro.redirect(`/admin/leads/${id}?ok=saved`, 303);
+    }
+  }
+  if (action === 'note') {
+    const note = String(form.get('note') || '').trim();
+    if (!note) error = 'Catatan masih kosong.';
+    else {
+      await addNote(id, user.id, note);
+      return Astro.redirect(`/admin/leads/${id}?ok=note`, 303);
+    }
+  }
+  if (action === 'delete') {
+    if (user.role !== 'admin') error = 'Hanya admin yang bisa menghapus lead.';
+    else {
+      await exec('DELETE FROM leads WHERE id = ?', [id]);
+      return Astro.redirect('/admin/leads?ok=deleted', 303);
+    }
+  }
+}
+
+const l = await one<any>('SELECT l.*, u.name AS assignee FROM leads l LEFT JOIN users u ON u.id = l.assigned_to WHERE l.id = ?', [id]);
+if (!l) return new Response('Lead tidak ditemukan', { status: 404 });
+const notes = await query<any>('SELECT n.note, n.created_at, u.name FROM lead_notes n LEFT JOIN users u ON u.id = n.user_id WHERE n.lead_id = ? ORDER BY n.id DESC', [id]);
+const users = await query<any>('SELECT id, name FROM users WHERE active = 1 ORDER BY name');
+const isBrief = l.tipe === 'Brief';
+const greet = isBrief
+  ? `Halo ${l.nama}, terima kasih sudah mengisi brief di website ${BRAND}. `
+  : `Halo ${l.nama}, terima kasih sudah mengunduh company profile ${BRAND}. `;
+
+const fields: [string, string][] = (
+  [
+    ['Jenis bisnis', l.bisnis], ['Paket', l.paket], ['Fitur', l.fitur], ['Budget', l.budget], ['Usaha', l.usaha],
+    ['Sumber', [l.utm_source, l.utm_medium, l.utm_campaign, l.utm_content].filter(Boolean).join(' / ') || 'langsung'],
+    ['Halaman', l.halaman],
+  ] as [string, string][]
+).filter((x) => x[1]);
+---
+<Admin title={l.nama} error={error}>
+  <a slot="actions" href="/admin/leads" class="btn btn-ghost btn-sm"><Icon name="arrow-left" size={16} /> <span class="max-sm:hidden">Semua lead</span></a>
+
+  <div class="grid gap-6 xl:grid-cols-[1.5fr_1fr]">
+    <div class="space-y-6">
+      <div class="card p-6">
+        <div class="flex flex-wrap items-center gap-2 text-sm text-mist">
+          {isBrief ? <span class={`st st-${l.status}`}>{l.status}</span> : <span class="chip">Unduh company profile</span>}
+          <span>Masuk {fmtDate(l.created_at)}</span>
+        </div>
+        <h2 class="mt-3 text-2xl font-bold">{l.nama}</h2>
+        {l.usaha && <p class="text-mist">{l.usaha}</p>}
+        <div class="mt-5 flex flex-wrap gap-2">
+          {l.wa && <a href={waUrl(l.wa, greet)} target="_blank" rel="noopener" class="btn btn-wa btn-sm"><Icon name="wa" size={16} /> +{l.wa}</a>}
+          {l.email && <a href={`mailto:${l.email}`} class="btn btn-ghost btn-sm">✉️ {l.email}</a>}
+        </div>
+        {isBrief && (
+          <div class="mt-6">
+            <div class="text-xs font-semibold tracking-wide text-mist uppercase">Kebutuhan</div>
+            <p class="mt-2 whitespace-pre-line">{l.kebutuhan}</p>
+          </div>
+        )}
+        <dl class="mt-6 grid gap-x-6 gap-y-3 text-sm sm:grid-cols-2">
+          {fields.map(([k, v]) => <div><dt class="text-xs text-mist">{k}</dt><dd class="mt-0.5 break-words">{v}</dd></div>)}
+        </dl>
+        {(l.reminded_3_at || l.reminded_7_at) && (
+          <p class="mt-5 text-xs text-mist">
+            {l.reminded_3_at && <>Pengingat H+3: {fmtDate(l.reminded_3_at)}. </>}
+            {l.reminded_7_at && <>Pengingat H+7: {fmtDate(l.reminded_7_at)}.</>}
+          </p>
+        )}
+      </div>
+
+      <div class="card p-6">
+        <h2 class="font-semibold">Catatan & riwayat</h2>
+        <form method="post" class="mt-4">
+          <input type="hidden" name="action" value="note" />
+          <textarea name="note" rows="3" class="input" placeholder="Mis. sudah ditelepon, minta proposal minggu depan." required maxlength="5000"></textarea>
+          <button class="btn btn-primary btn-sm mt-3">Tambah catatan</button>
+        </form>
+        {notes.length > 0 && (
+          <ol class="mt-6 space-y-4 border-l border-white/10 pl-5">
+            {notes.map((n) => (
+              <li class="relative">
+                <span class="absolute top-1.5 -left-[25px] h-2.5 w-2.5 rounded-full bg-brand-400"></span>
+                <p class="text-sm whitespace-pre-line">{n.note}</p>
+                <p class="mt-1 text-xs text-mist">{n.name ?? 'Sistem'} · {fmtDate(n.created_at)}</p>
+              </li>
+            ))}
+          </ol>
+        )}
+      </div>
+    </div>
+
+    <aside class="space-y-6">
+      {isBrief && (
+        <form method="post" class="card p-6">
+          <input type="hidden" name="action" value="status" />
+          <h2 class="font-semibold">Status</h2>
+          <div class="mt-4 grid grid-cols-2 gap-2">
+            {STATUSES.map((s) => (
+              <label class="flex cursor-pointer items-center gap-2 rounded-xl border border-white/10 px-3 py-2 text-sm has-[:checked]:border-brand-400 has-[:checked]:bg-brand-500/10">
+                <input type="radio" name="status" value={s} checked={l.status === s} class="accent-brand-500" />{s}
+              </label>
+            ))}
+          </div>
+          <button class="btn btn-primary btn-sm mt-4 w-full">Simpan status</button>
+        </form>
+      )}
+
+      <form method="post" class="card p-6">
+        <input type="hidden" name="action" value="assign" />
+        <h2 class="font-semibold">Ditangani oleh</h2>
+        <select name="assigned_to" class="input mt-4">
+          <option value="">— Belum ditugaskan —</option>
+          {users.map((u) => <option value={u.id} selected={u.id === l.assigned_to}>{u.name}</option>)}
+        </select>
+        <button class="btn btn-ghost btn-sm mt-3 w-full">Simpan</button>
+      </form>
+
+      {user.role === 'admin' && (
+        <form method="post" class="card p-6" data-confirm={`Hapus lead ${l.nama} beserta catatannya? Tindakan ini tidak bisa dibatalkan.`}>
+          <input type="hidden" name="action" value="delete" />
+          <h2 class="font-semibold">Hapus data</h2>
+          <p class="mt-2 text-sm text-mist">Untuk permintaan penghapusan data dari calon klien (UU PDP) atau data spam.</p>
+          <button class="btn btn-sm mt-4 w-full border border-red-500/40 text-red-300 hover:bg-red-500/10"><Icon name="trash" size={16} /> Hapus lead</button>
+        </form>
+      )}
+    </aside>
+  </div>
+</Admin>

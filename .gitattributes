@@ -1,0 +1,2 @@
+# Script untuk VPS (Linux) harus memakai akhir baris LF
+*.sh text eol=lf

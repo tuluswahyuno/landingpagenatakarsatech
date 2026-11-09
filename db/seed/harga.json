@@ -1,0 +1,52 @@
+{
+  "packages": [
+    {
+      "name": "Starter",
+      "price": "Rp1,5 jt",
+      "prefix": "Mulai",
+      "for": "Usaha yang baru mulai go-digital",
+      "features": [
+        "Landing page / profil usaha 1–5 halaman",
+        "atau 1 otomasi sederhana (formulir → Google Sheets + notifikasi WhatsApp)",
+        "Domain .com & hosting tahun pertama",
+        "Selesai 3–7 hari kerja",
+        "Garansi bug 1 bulan"
+      ],
+      "popular": false
+    },
+    {
+      "name": "Business",
+      "price": "Rp7,5 jt",
+      "prefix": "Mulai",
+      "for": "UMKM yang ingin operasional otomatis",
+      "features": [
+        "Web app 3–5 modul (kasir, stok, pelanggan, laporan)",
+        "Dashboard & laporan otomatis",
+        "Multi-user dengan hak akses",
+        "Export Excel / PDF",
+        "Training tim 1 sesi",
+        "Selesai 3–6 minggu · garansi bug 3 bulan"
+      ],
+      "popular": true
+    },
+    {
+      "name": "Enterprise",
+      "price": "Konsultasi",
+      "prefix": "",
+      "for": "Multi-cabang, instansi, kebutuhan kompleks",
+      "features": [
+        "ERP / sistem custom penuh",
+        "Aplikasi mobile",
+        "Integrasi payment gateway, WhatsApp API, sistem lain",
+        "Dokumentasi teknis",
+        "Garansi 6 bulan + SLA"
+      ],
+      "popular": false
+    }
+  ],
+  "addons": [
+    { "name": "Maintenance & hosting", "price": "mulai Rp350 rb/bulan" },
+    { "name": "Modul tambahan", "price": "mulai Rp1,5 jt/modul" },
+    { "name": "Aplikasi Android pendamping", "price": "mulai Rp10 jt" }
+  ]
+}

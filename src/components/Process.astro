@@ -40,10 +40,12 @@ import { processSteps } from '../data/site';
   let ticking = false;
   const update = () => {
     ticking = false;
+    // Baca semua posisi dulu, baru tulis (hindari layout thrashing)
     const r = tl.getBoundingClientRect();
+    const lit = steps.map((s) => s.getBoundingClientRect().top < innerHeight * 0.6);
     const p = Math.min(1, Math.max(0, (innerHeight * 0.6 - r.top) / r.height));
     tl.style.setProperty('--p', p.toFixed(3));
-    steps.forEach((s) => s.classList.toggle('is-lit', s.getBoundingClientRect().top < innerHeight * 0.6));
+    steps.forEach((s, i) => s.classList.toggle('is-lit', lit[i]));
   };
   addEventListener('scroll', () => { if (!ticking) { ticking = true; requestAnimationFrame(update); } }, { passive: true });
   update();

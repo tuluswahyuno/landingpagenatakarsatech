@@ -1,0 +1,12 @@
+{
+  "items": [
+    { "q": "Berapa lama pembuatan sistem?", "a": "Starter 3–7 hari kerja, Business 3–6 minggu, Enterprise 2–4 bulan. Timeline pasti tertulis di proposal." },
+    { "q": "Berapa biayanya?", "a": "Mulai Rp1,5 juta untuk Starter dan Rp7,5 juta untuk Business. Untuk kebutuhan custom, hubungi kami langsung via WhatsApp untuk konsultasi gratis." },
+    { "q": "Apakah pembayaran bisa bertahap?", "a": "Bisa. Umumnya DP 50% dan pelunasan saat serah terima. Paket Business bisa termin 40/30/30, Enterprise per milestone." },
+    { "q": "Apakah saya mendapat source code?", "a": "Ya. Source code diserahkan setelah pelunasan untuk paket Business dan Enterprise." },
+    { "q": "Bagaimana kalau ada bug setelah rilis?", "a": "Semua paket punya garansi bug gratis: 1 bulan (Starter), 3 bulan (Business), 6 bulan + SLA (Enterprise)." },
+    { "q": "Sistemnya di-hosting di mana?", "a": "Di server cloud yang andal. Kami bisa mengurus hosting lewat paket maintenance, atau memasang di server milik Anda." },
+    { "q": "Apakah data bisnis saya aman?", "a": "Data dienkripsi saat dikirim (HTTPS), dibackup rutin, dan akses dibatasi per user. Kami juga siap menandatangani perjanjian kerahasiaan (NDA)." },
+    { "q": "Saya belum tahu butuh fitur apa. Bagaimana?", "a": "Tidak masalah. Ceritakan masalah bisnis Anda saat konsultasi gratis, kami bantu susun fitur yang paling berdampak dulu." }
+  ]
+}

@@ -1,0 +1,90 @@
+---
+import Admin from '../../../layouts/Admin.astro';
+import Icon from '../../../components/Icon.astro';
+import { query, one } from '../../../lib/server/db';
+import { STATUSES } from '../../../lib/server/leads';
+import { leadFilter } from '../../../lib/server/lead-filter';
+import { fmtDate } from '../../../lib/server/http';
+
+const PER_PAGE = 30;
+const f = leadFilter(Astro.url.searchParams);
+const page = Math.max(1, Number(Astro.url.searchParams.get('hal')) || 1);
+const total = Number((await one<any>(`SELECT COUNT(*) AS n FROM leads ${f.sql}`, f.args))?.n ?? 0);
+const pages = Math.max(1, Math.ceil(total / PER_PAGE));
+const rows = await query<any>(
+  `SELECT id, created_at, status, tipe, nama, usaha, wa, email, bisnis, paket, budget, utm_source FROM leads ${f.sql} ORDER BY id DESC LIMIT ? OFFSET ?`,
+  [...f.args, PER_PAGE, (page - 1) * PER_PAGE]
+);
+
+const qs = (over: Record<string, string | number>) => {
+  const p = new URLSearchParams(Astro.url.searchParams);
+  for (const [k, v] of Object.entries(over)) v === '' ? p.delete(k) : p.set(k, String(v));
+  return '?' + p.toString();
+};
+const exportQs = (() => {
+  const p = new URLSearchParams(Astro.url.searchParams);
+  p.delete('hal');
+  return p.toString();
+})();
+---
+<Admin title="Lead">
+  <a slot="actions" href={`/admin/leads/export.csv${exportQs ? '?' + exportQs : ''}`} class="btn btn-ghost btn-sm"><Icon name="download" size={16} /> <span class="max-sm:hidden">Export CSV</span></a>
+
+  <form method="get" class="card flex flex-wrap items-end gap-3 p-4">
+    <label class="adm-label min-w-48 flex-1">Cari
+      <input name="q" value={f.q} class="input mt-1" placeholder="Nama, usaha, WA, email, kebutuhan" />
+    </label>
+    <label class="adm-label">Status
+      <select name="status" class="input mt-1">
+        <option value="">Semua</option>
+        {STATUSES.map((s) => <option selected={f.status === s}>{s}</option>)}
+      </select>
+    </label>
+    <label class="adm-label">Tipe
+      <select name="tipe" class="input mt-1">
+        <option value="">Semua</option>
+        <option selected={f.tipe === 'Brief'}>Brief</option>
+        <option selected={f.tipe === 'Company profile'}>Company profile</option>
+      </select>
+    </label>
+    <label class="adm-label">Dari
+      <input type="date" name="dari" value={f.from} class="input mt-1" />
+    </label>
+    <label class="adm-label">Sampai
+      <input type="date" name="sampai" value={f.to} class="input mt-1" />
+    </label>
+    <button class="btn btn-primary btn-sm">Terapkan</button>
+    {(f.q || f.status || f.tipe || f.from || f.to) && <a href="/admin/leads" class="btn btn-ghost btn-sm">Reset</a>}
+  </form>
+
+  <p class="mt-6 mb-3 text-sm text-mist">{total} lead</p>
+  <div class="card overflow-x-auto">
+    {rows.length === 0 ? (
+      <p class="p-8 text-center text-sm text-mist">Tidak ada lead yang cocok.</p>
+    ) : (
+      <table class="adm-table">
+        <thead><tr><th>Waktu</th><th>Nama</th><th>Kontak</th><th>Kebutuhan</th><th>Status</th><th>Sumber</th></tr></thead>
+        <tbody>
+          {rows.map((l) => (
+            <tr>
+              <td class="text-xs whitespace-nowrap text-mist">{fmtDate(l.created_at)}</td>
+              <td><a href={`/admin/leads/${l.id}`} class="font-semibold hover:underline">{l.nama}</a>{l.usaha && <div class="text-xs text-mist">{l.usaha}</div>}</td>
+              <td class="text-xs whitespace-nowrap">{l.wa && <div>+{l.wa}</div>}{l.email && <div class="text-mist">{l.email}</div>}</td>
+              <td class="text-xs">{l.tipe === 'Brief' ? <>{l.bisnis}<div class="text-mist">{l.paket} · {l.budget}</div></> : <span class="chip">Unduh company profile</span>}</td>
+              <td>{l.tipe === 'Brief' ? <span class={`st st-${l.status}`}>{l.status}</span> : <span class="text-xs text-mist">—</span>}</td>
+              <td class="text-xs text-mist">{l.utm_source || 'langsung'}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    )}
+  </div>
+
+  {pages > 1 && (
+    <nav class="mt-6 flex items-center justify-center gap-2 text-sm" aria-label="Halaman">
+      {page > 1 && <a href={qs({ hal: page - 1 })} class="btn btn-ghost btn-sm">Sebelumnya</a>}
+      <span class="px-3 text-mist">Halaman {page} dari {pages}</span>
+      {page < pages && <a href={qs({ hal: page + 1 })} class="btn btn-ghost btn-sm">Berikutnya</a>}
+    </nav>
+  )}
+</Admin>

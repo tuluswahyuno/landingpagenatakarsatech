@@ -1,6 +1,6 @@
 ---
 import Icon from './Icon.astro';
-import { waLink, site } from '../data/site';
+const { waLink, kontak: site } = Astro.locals.content;
 const bisnis = ['Retail / toko', 'Distributor / grosir', 'Klinik / kesehatan', 'Sekolah / pendidikan', 'Koperasi / keuangan', 'F&B / restoran', 'Manufaktur', 'Instansi / pemerintahan', 'Lainnya'];
 const fitur = ['Kasir / POS', 'Stok & gudang', 'Laporan & dashboard', 'Keuangan', 'Absensi & gaji', 'Aplikasi mobile', 'Notifikasi WhatsApp', 'Multi-cabang'];
 const budget = ['< Rp5 juta', 'Rp5–15 juta', 'Rp15–30 juta', '> Rp30 juta', 'Belum tahu'];
@@ -19,9 +19,15 @@ const budget = ['< Rp5 juta', 'Rp5–15 juta', 'Rp15–30 juta', '> Rp30 juta', 
             <li class="flex gap-2"><Icon name="check" size={18} class="text-aqua" /> Dibalas maksimal 15 menit di jam kerja</li>
             <li class="flex gap-2"><Icon name="check" size={18} class="text-aqua" /> Data Anda tidak dibagikan ke pihak lain</li>
           </ul>
+          {(site.bookingUrl || site.companyProfileUrl) && (
+            <div class="mt-10 flex flex-wrap gap-3 border-t border-white/10 pt-8" data-reveal style="--d:4">
+              {site.bookingUrl && <a href={site.bookingUrl} target="_blank" rel="noopener" class="btn btn-ghost whitespace-nowrap !px-5 text-sm max-sm:w-full" data-track="booking_open"><Icon name="calendar" size={18} /> Jadwalkan video call</a>}
+              {site.companyProfileUrl && <button type="button" class="btn btn-ghost whitespace-nowrap !px-5 text-sm max-sm:w-full" data-open-profile><Icon name="download" size={18} /> Company profile</button>}
+            </div>
+          )}
         </div>
 
-        <form id="brief-form" class="glass rounded-3xl p-5 sm:p-8" novalidate data-reveal style="--d:1">
+        <form id="brief-form" class="glass rounded-3xl p-5 sm:p-8" novalidate data-wa={site.whatsapp} data-reveal style="--d:1">
           <div class="mb-6">
             <div class="flex justify-between text-xs text-mist"><span id="step-label">Langkah 1 dari 3</span><span id="step-name">Bisnis Anda</span></div>
             <div class="mt-2 h-1.5 overflow-hidden rounded-full bg-white/10"><div id="step-bar" class="h-full w-1/3 rounded-full bg-gradient-to-r from-brand-400 to-aqua transition-all duration-500"></div></div>
@@ -78,9 +84,13 @@ const budget = ['< Rp5 juta', 'Rp5–15 juta', 'Rp15–30 juta', '> Rp30 juta', 
               <input type="checkbox" name="setuju" required class="mt-0.5 accent-brand-500" />
               <span>Saya setuju data ini dipakai Natakarsa Tech untuk menghubungi saya, sesuai <a href="/kebijakan-privasi" class="underline">kebijakan privasi</a>.</span>
             </label>
+            <div id="brief-turnstile" class="empty:hidden"></div>
           </fieldset>
 
-          <p id="form-error" class="mt-4 hidden rounded-xl bg-red-500/10 px-4 py-2 text-sm text-red-300" role="alert"></p>
+          <div id="form-error" class="mt-4 hidden rounded-xl bg-red-500/10 px-4 py-3 text-sm text-red-300" role="alert">
+            <p id="form-error-text"></p>
+            <a id="form-error-wa" href="#" target="_blank" rel="noopener" data-section="brief-gagal" class="mt-2 hidden font-semibold underline">Kirim brief lewat WhatsApp</a>
+          </div>
 
           <div class="mt-6 flex gap-3">
             <button type="button" id="btn-back" class="btn btn-ghost hidden">Kembali</button>
@@ -94,7 +104,7 @@ const budget = ['< Rp5 juta', 'Rp5–15 juta', 'Rp15–30 juta', '> Rp30 juta', 
 </section>
 
 <script>
-  import { site } from '../data/site';
+  import { turnstileEnabled, sendLead, getUtm, mountTurnstile, resetTurnstile } from '../lib/lead';
   const form = document.getElementById('brief-form') as HTMLFormElement;
   const steps = [...form.querySelectorAll<HTMLFieldSetElement>('.step')];
   const bar = document.getElementById('step-bar')!;
@@ -116,7 +126,12 @@ const budget = ['< Rp5 juta', 'Rp5–15 juta', 'Rp15–30 juta', '> Rp30 juta', 
     next.classList.toggle('hidden', i === steps.length - 1);
     submit.classList.toggle('hidden', i !== steps.length - 1);
     err.classList.add('hidden');
+    if (i === steps.length - 1) mountTurnstile(tsEl).then((fn) => (tsToken = fn));
   };
+  const tsEl = document.getElementById('brief-turnstile')!;
+  let tsToken = () => '';
+  const errText = document.getElementById('form-error-text')!;
+  const errWa = document.getElementById('form-error-wa') as HTMLAnchorElement;
 
   const fd = () => new FormData(form);
   const phoneOk = (v: string) => /^(\+?62|0)8\d{7,12}$/.test(v.replace(/[\s-]/g, ''));
@@ -136,7 +151,12 @@ const budget = ['< Rp5 juta', 'Rp5–15 juta', 'Rp15–30 juta', '> Rp30 juta', 
     }
     return '';
   };
-  const fail = (m: string) => { err.textContent = m; err.classList.remove('hidden'); };
+  const fail = (m: string, waUrl = '') => {
+    errText.textContent = m;
+    errWa.classList.toggle('hidden', !waUrl);
+    if (waUrl) errWa.href = waUrl;
+    err.classList.remove('hidden');
+  };
 
   next.addEventListener('click', () => {
     const m = validate(cur);
@@ -147,28 +167,43 @@ const budget = ['< Rp5 juta', 'Rp5–15 juta', 'Rp15–30 juta', '> Rp30 juta', 
   });
   back.addEventListener('click', () => show(cur - 1));
 
-  form.addEventListener('submit', (e) => {
+  const submitLabel = submit.innerHTML;
+  let sending = false;
+  form.addEventListener('submit', async (e) => {
     e.preventDefault();
+    if (sending) return;
     for (let i = 0; i < steps.length; i++) { const m = validate(i); if (m) { show(i); return fail(m); } }
     const d = fd();
     if (d.get('website')) return; // bot
     const fitur = d.getAll('fitur').join(', ') || '-';
-    let utm = {};
-    try { utm = JSON.parse(localStorage.getItem('nk_utm') || '{}'); } catch {}
     const lead = {
-      bisnis: d.get('bisnis'), kebutuhan: d.get('kebutuhan'), paket: d.get('paket'), fitur, budget: d.get('budget'),
-      nama: d.get('nama'), usaha: d.get('usaha'), wa: d.get('wa'), email: d.get('email'), utm, waktu: new Date().toISOString(),
+      tipe: 'brief',
+      bisnis: String(d.get('bisnis')), kebutuhan: String(d.get('kebutuhan')), paket: String(d.get('paket')), fitur, budget: String(d.get('budget')),
+      nama: String(d.get('nama')), usaha: String(d.get('usaha') || ''), wa: String(d.get('wa')), email: String(d.get('email') || ''),
     };
     const msg = `Halo Natakarsa Tech, saya ${lead.nama}${lead.usaha ? ` dari ${lead.usaha}` : ''}.\n\n` +
       `Jenis bisnis: ${lead.bisnis}\nKebutuhan: ${lead.kebutuhan}\nPaket: ${lead.paket}\nFitur: ${fitur}\nBudget: ${lead.budget}\n\nMohon info lebih lanjut. Terima kasih.`;
-    const url = `https://wa.me/${site.whatsapp}?text=${encodeURIComponent(msg)}`;
+    const url = `https://wa.me/${form.dataset.wa}?text=${encodeURIComponent(msg)}`;
+    const done = (saved: boolean) => {
+      (window as any).track?.('lead_submit', { bisnis: lead.bisnis, budget: lead.budget, paket: lead.paket, tersimpan: saved, ...getUtm() });
+      try { sessionStorage.setItem('nk_wa', url); sessionStorage.setItem('nk_nama', lead.nama); sessionStorage.setItem('nk_saved', saved ? '1' : '0'); } catch {}
+    };
 
-    if (site.leadEndpoint) {
-      fetch(site.leadEndpoint, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(lead), keepalive: true }).catch(() => {});
+    if (turnstileEnabled && !tsToken()) return fail('Tunggu sebentar, verifikasi anti-spam sedang berjalan, lalu tekan Kirim lagi.');
+    sending = true;
+    submit.setAttribute('disabled', '');
+    submit.textContent = 'Mengirim…';
+    const res = await sendLead({ ...lead, website: d.get('website') || '', turnstile: tsToken() });
+    sending = false;
+    submit.removeAttribute('disabled');
+    submit.innerHTML = submitLabel;
+    if (res.ok) {
+      done(true);
+      location.href = '/terima-kasih/';
+    } else {
+      resetTurnstile(tsEl);
+      (window as any).track?.('lead_error', { error: res.error });
+      fail(`${res.error} Anda juga bisa mengirim brief yang sama lewat WhatsApp:`, url);
     }
-    (window as any).track?.('lead_submit', { bisnis: lead.bisnis, budget: lead.budget, paket: lead.paket, ...utm });
-    try { sessionStorage.setItem('nk_wa', url); sessionStorage.setItem('nk_nama', String(lead.nama)); } catch {}
-    window.open(url, '_blank', 'noopener');
-    location.href = '/terima-kasih/';
   });
 </script>

@@ -1,0 +1,70 @@
+---
+import Admin from '../../../layouts/Admin.astro';
+import Icon from '../../../components/Icon.astro';
+import { query, exec, json } from '../../../lib/server/db';
+import { invalidateContent } from '../../../lib/server/content';
+import { categories } from '../../../lib/content-schema';
+
+if (Astro.request.method === 'POST') {
+  const form = await Astro.request.formData();
+  const id = Number(form.get('id'));
+  const action = String(form.get('action'));
+  if (action === 'toggle') await exec('UPDATE portfolio SET published = 1 - published WHERE id = ?', [id]);
+  if (action === 'delete') await exec('DELETE FROM portfolio WHERE id = ?', [id]);
+  if (action === 'up' || action === 'down') {
+    // Tukar urutan dengan item di atas / bawahnya
+    const all = await query<any>('SELECT id FROM portfolio ORDER BY sort_order, id');
+    const i = all.findIndex((r) => r.id === id);
+    const j = action === 'up' ? i - 1 : i + 1;
+    if (i >= 0 && j >= 0 && j < all.length) {
+      [all[i], all[j]] = [all[j], all[i]];
+      for (let k = 0; k < all.length; k++) await exec('UPDATE portfolio SET sort_order = ? WHERE id = ?', [k + 1, all[k].id]);
+    }
+  }
+  invalidateContent();
+  return Astro.redirect(`/admin/portofolio${action === 'delete' ? '?ok=deleted' : ''}`, 303);
+}
+
+const items = (await query<any>('SELECT id, slug, title, industry, category, year, images, accent, published, contoh FROM portfolio ORDER BY sort_order, id')).map((p) => ({ ...p, img: json<string[]>(p.images, [])[0] }));
+const catLabel = Object.fromEntries(categories.map((c) => [c.id, c.label]));
+---
+<Admin title="Portofolio">
+  <a slot="actions" href="/admin/portofolio/baru" class="btn btn-primary btn-sm"><Icon name="plus" size={16} /> Tambah</a>
+
+  <p class="mb-4 text-sm text-mist">Urutan di sini = urutan tampil di situs. Item yang disembunyikan tidak tampil di situs.</p>
+  <div class="card overflow-x-auto">
+    {items.length === 0 ? (
+      <p class="p-8 text-center text-sm text-mist">Belum ada portofolio. <a href="/admin/portofolio/baru" class="text-brand-300 underline">Tambah yang pertama</a>.</p>
+    ) : (
+      <table class="adm-table">
+        <thead><tr><th class="w-16"></th><th>Judul</th><th>Kategori</th><th>Status</th><th class="text-right">Aksi</th></tr></thead>
+        <tbody>
+          {items.map((p, i) => (
+              <tr>
+                <td>
+                  {p.img
+                    ? <img src={p.img} alt="" width="56" height="40" class="h-10 w-14 rounded-md border border-white/10 object-cover" loading="lazy" />
+                    : <div class="h-10 w-14 rounded-md" style={`background:linear-gradient(135deg, ${p.accent}, transparent)`}></div>}
+                </td>
+                <td><a href={`/admin/portofolio/${p.id}`} class="font-semibold hover:underline">{p.title}</a><div class="text-xs text-mist">{p.industry} · {p.year}</div></td>
+                <td class="text-xs">{catLabel[p.category] ?? p.category}</td>
+                <td class="space-x-1 whitespace-nowrap">
+                  {p.published ? <span class="st st-Deal">Tampil</span> : <span class="st st-Batal">Disembunyikan</span>}
+                  {p.contoh ? <span class="badge-contoh">Contoh</span> : null}
+                </td>
+                <td>
+                  <div class="flex justify-end gap-1">
+                    <form method="post"><input type="hidden" name="id" value={p.id} /><button name="action" value="up" class="grid h-8 w-8 place-items-center rounded-lg hover:bg-white/10 disabled:opacity-30" disabled={i === 0} aria-label="Naikkan"><Icon name="up" size={16} /></button></form>
+                    <form method="post"><input type="hidden" name="id" value={p.id} /><button name="action" value="down" class="grid h-8 w-8 place-items-center rounded-lg hover:bg-white/10 disabled:opacity-30" disabled={i === items.length - 1} aria-label="Turunkan"><Icon name="down" size={16} /></button></form>
+                    <form method="post"><input type="hidden" name="id" value={p.id} /><button name="action" value="toggle" class="grid h-8 w-8 place-items-center rounded-lg hover:bg-white/10" aria-label={p.published ? 'Sembunyikan' : 'Tampilkan'} title={p.published ? 'Sembunyikan' : 'Tampilkan'}><Icon name="eye" size={16} /></button></form>
+                    <a href={`/admin/portofolio/${p.id}`} class="grid h-8 w-8 place-items-center rounded-lg hover:bg-white/10" aria-label="Edit"><Icon name="edit" size={16} /></a>
+                    <form method="post" data-confirm={`Hapus portofolio "${p.title}"? Tindakan ini tidak bisa dibatalkan.`}><input type="hidden" name="id" value={p.id} /><button name="action" value="delete" class="grid h-8 w-8 place-items-center rounded-lg text-red-300 hover:bg-red-500/10" aria-label="Hapus"><Icon name="trash" size={16} /></button></form>
+                  </div>
+                </td>
+              </tr>
+          ))}
+        </tbody>
+      </table>
+    )}
+  </div>
+</Admin>

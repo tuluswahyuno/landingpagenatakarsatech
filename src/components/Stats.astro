@@ -1,11 +1,11 @@
 ---
-import { stats } from '../data/site';
+const { stats } = Astro.locals.content.angka;
 ---
-<section aria-label="Angka dan dampak" class="relative py-16">
+<section aria-label="Angka dan dampak" class="relative py-6 sm:py-8">
   <div class="container-x">
     <div class="ring-glow grid grid-cols-2 gap-px overflow-hidden rounded-3xl bg-white/5 lg:grid-cols-4">
       {stats.map((s, i) => (
-        <div class="bg-ink-900 px-6 py-10 text-center" data-reveal style={`--d:${i}`}>
+        <div class="bg-ink-900 px-6 py-8 text-center" data-reveal style={`--d:${i}`}>
           <div class="font-display text-4xl font-extrabold sm:text-5xl"><span class="counter text-gradient" data-to={s.value}>{s.value.toLocaleString('id-ID')}</span><span class="text-gradient">{s.suffix}</span></div>
           <div class="mt-2 text-sm text-mist">{s.label}</div>
         </div>

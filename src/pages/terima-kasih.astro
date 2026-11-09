@@ -1,9 +1,8 @@
 ---
 import Base from '../layouts/Base.astro';
 import Icon from '../components/Icon.astro';
-import { getCollection } from 'astro:content';
-import { waLink } from '../data/site';
-const picks = (await getCollection('portfolio')).sort((a, b) => a.data.order - b.data.order).slice(0, 2);
+const { portfolio, waLink } = Astro.locals.content;
+const picks = portfolio.slice(0, 2);
 ---
 <Base title="Terima kasih — Natakarsa Tech" description="Brief Anda sudah kami terima.">
   <meta name="robots" content="noindex" slot="head" />
@@ -13,17 +12,18 @@ const picks = (await getCollection('portfolio')).sort((a, b) => a.data.order - b
       <span class="mx-auto grid h-16 w-16 place-items-center rounded-full bg-emerald-400/15 text-emerald-300"><Icon name="check" size={32} /></span>
       <h1 class="mt-6 text-4xl font-extrabold sm:text-5xl">Terima kasih<span id="ty-name"></span>!</h1>
       <p class="mt-4 text-lg text-mist">Brief Anda sudah kami terima. Tim kami akan membalas maksimal <strong class="text-snow">15 menit di jam kerja</strong> (Senin–Sabtu, 08.00–17.00 WIB).</p>
-      <p class="mt-2 text-mist">Ingin lebih cepat? Kirim brief yang sama langsung ke WhatsApp kami.</p>
+      <p id="ty-after-hours" class="mt-3 hidden rounded-xl bg-amber-400/10 px-4 py-2 text-sm text-amber-200">Saat ini di luar jam kerja. Brief Anda aman tersimpan dan akan kami balas paling lambat pukul 08.15 WIB di hari kerja berikutnya.</p>
+      <p id="ty-hint" class="mt-2 text-mist">Ingin lebih cepat? Kirim brief yang sama langsung ke WhatsApp kami.</p>
       <a id="ty-wa" href={waLink('Halo Natakarsa Tech, saya baru saja mengisi brief di website.')} target="_blank" rel="noopener" data-section="terima-kasih" class="btn btn-wa mt-8"><Icon name="wa" /> Lanjut ke WhatsApp</a>
     </div>
     <div class="container-x relative mt-20">
       <h2 class="text-center text-xl font-semibold">Sambil menunggu, lihat studi kasus ini</h2>
       <div class="mx-auto mt-8 grid max-w-3xl gap-4 sm:grid-cols-2">
         {picks.map((p) => (
-          <a href={`/portofolio/${p.id}/`} class="card group p-6 transition hover:border-white/25">
-            <div class="text-xs text-mist">{p.data.industry}</div>
-            <div class="mt-1 text-lg font-semibold">{p.data.title}</div>
-            <div class="mt-3 text-sm" style={`color:${p.data.accent}`}>{p.data.result}</div>
+          <a href={`/portofolio/${p.slug}/`} class="card group p-6 transition hover:border-white/25">
+            <div class="text-xs text-mist">{p.industry}</div>
+            <div class="mt-1 text-lg font-semibold">{p.title}</div>
+            <div class="mt-3 text-sm" style={`color:${p.accent}`}>{p.result}</div>
           </a>
         ))}
       </div>
@@ -37,5 +37,11 @@ const picks = (await getCollection('portfolio')).sort((a, b) => a.data.order - b
     const nama = sessionStorage.getItem('nk_nama');
     if (url) (document.getElementById('ty-wa') as HTMLAnchorElement).href = url;
     if (nama) document.getElementById('ty-name')!.textContent = `, ${nama.split(' ')[0]}`;
+    // Brief yang belum tersimpan di server (dikirim lewat WA) perlu dipastikan terkirim
+    if (sessionStorage.getItem('nk_saved') === '0') document.getElementById('ty-hint')!.textContent = 'Pastikan pesan di WhatsApp sudah Anda kirim. Jendela WhatsApp belum terbuka? Tekan tombol di bawah.';
+    // Jam kerja: Senin–Sabtu 08.00–17.00 WIB
+    const p = Object.fromEntries(new Intl.DateTimeFormat('en-US', { timeZone: 'Asia/Jakarta', weekday: 'short', hour: 'numeric', hourCycle: 'h23' }).formatToParts(new Date()).map((x) => [x.type, x.value]));
+    const h = Number(p.hour);
+    if (p.weekday === 'Sun' || h < 8 || h >= 17) document.getElementById('ty-after-hours')!.classList.remove('hidden');
   } catch {}
 </script>

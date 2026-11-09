@@ -1,29 +1,185 @@
 ---
 import Icon from './Icon.astro';
+import AppMockup from './AppMockup.astro';
 import { services } from '../data/site';
+const { waLink } = Astro.locals.content;
+const price = (from: string) => (from === 'Konsultasi' ? 'Harga sesuai kebutuhan' : `Mulai ${from}`);
+const link = (cat: string) => (cat === 'semua' ? '#portofolio' : `/?kategori=${cat}#portofolio`);
 ---
 <section id="layanan" class="section">
   <div class="container-x">
-    <div class="max-w-3xl">
+    <div class="mx-auto max-w-3xl text-center">
       <span class="eyebrow" data-reveal>Layanan</span>
       <h2 class="h-section" data-reveal style="--d:1">Satu tim untuk semua kebutuhan <span class="text-gradient">digital bisnis Anda.</span></h2>
-      <p class="lead" data-reveal style="--d:2">Pilih yang paling mendesak dulu. Sistem bisa berkembang bertahap seiring bisnis Anda tumbuh.</p>
+      <p class="lead mx-auto" data-reveal style="--d:2">Mulai dari yang paling mendesak. Sistem dibangun bertahap dan tumbuh bersama bisnis Anda.</p>
     </div>
-    <div class="mt-12 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-      {services.map((s, i) => (
-        <a href={s.category === 'semua' ? '#portofolio' : `/?kategori=${s.category}#portofolio`} class="tilt-card group card relative overflow-hidden p-6 transition hover:border-white/20" data-reveal style={`--d:${i}`}>
-          <div class="tilt-glow pointer-events-none absolute inset-0 opacity-0 transition group-hover:opacity-100"></div>
-          <span class="grid h-12 w-12 place-items-center rounded-2xl bg-gradient-to-br from-brand-500/30 to-cyan-400/10 text-brand-300 ring-1 ring-white/10 transition duration-500 group-hover:scale-110 group-hover:rotate-6">
-            <Icon name={s.icon} size={24} />
-          </span>
-          <h3 class="mt-5 text-lg font-semibold">{s.title}</h3>
-          <p class="mt-2 text-sm text-mist">{s.desc}</p>
-          <div class="mt-6 flex items-center justify-between border-t border-white/5 pt-4 text-sm">
-            <span class="text-mist">{s.from === 'Konsultasi' ? 'Harga via konsultasi' : <>Mulai <strong class="text-snow">{s.from}</strong></>}</span>
-            <Icon name="arrow" size={18} class="text-mist transition group-hover:translate-x-1 group-hover:text-snow" />
+
+    <div id="svc" class="mt-14 grid gap-6 lg:grid-cols-[0.85fr_1.15fr] lg:gap-10" data-reveal style="--d:3">
+      <!-- Daftar layanan (tab di desktop, akordeon di HP) -->
+      <div role="tablist" aria-label="Pilih layanan" class="flex flex-col">
+        {services.map((s, i) => (
+          <div class="svc-item border-b border-white/10 first:border-t" data-i={i} data-active={i === 0 ? 'true' : undefined}>
+            <button type="button" role="tab" id={`svc-tab-${i}`} aria-controls={`svc-panel-${i}`} aria-selected={i === 0 ? 'true' : 'false'} class="svc-tab group flex w-full items-center gap-4 py-5 text-left">
+              <span class="svc-num font-display text-sm font-semibold tabular-nums">{String(i + 1).padStart(2, '0')}</span>
+              <span class="svc-title flex-1 font-display text-lg font-semibold tracking-tight sm:text-xl">{s.title}</span>
+              <span class="svc-plus grid h-8 w-8 shrink-0 place-items-center rounded-full border border-white/10"><Icon name="plus" size={14} /></span>
+            </button>
+            <div class="svc-body">
+              <div class="overflow-hidden">
+                <div class="pb-6 pl-10">
+                  <p class="text-mist">{s.desc}</p>
+                  <ul class="mt-4 space-y-1.5 text-sm lg:hidden">
+                    {s.points.map((pt) => <li class="flex items-center gap-2.5"><Icon name="check" size={15} class="shrink-0 text-aqua" />{pt}</li>)}
+                  </ul>
+                  <div class="mt-4 flex items-center justify-between gap-4 text-sm lg:hidden">
+                    <span class="font-semibold">{price(s.from)}</span>
+                    <a href={link(s.category)} class="inline-flex items-center gap-1.5 text-brand-300">Contoh <Icon name="arrow" size={14} /></a>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <span class="svc-progress" aria-hidden="true"></span>
           </div>
+        ))}
+        <a href={waLink('Halo Natakarsa Tech, saya ingin konsultasi layanan yang cocok untuk bisnis saya.')} target="_blank" rel="noopener" data-section="layanan" class="mt-8 inline-flex items-center gap-2 self-start text-sm font-semibold text-brand-300 hover:text-snow">
+          Bingung mulai dari mana? Konsultasi gratis <Icon name="arrow" size={16} />
         </a>
-      ))}
+      </div>
+
+      <!-- Panel pratinjau (desktop) -->
+      <div class="relative hidden lg:block">
+        <div class="ring-glow sticky top-28 overflow-hidden rounded-[2rem] border border-white/10 bg-gradient-to-br from-brand-600/15 via-ink-850 to-cyan-500/10">
+          <div class="bg-grid pointer-events-none absolute inset-0 opacity-40" aria-hidden="true"></div>
+          {services.map((s, i) => (
+            <div id={`svc-panel-${i}`} role="tabpanel" aria-labelledby={`svc-tab-${i}`} class="svc-panel relative" data-active={i === 0 ? 'true' : undefined}>
+              <div class="grid h-[340px] place-items-center px-10 pt-10">
+                {s.icon === 'erp' && <AppMockup variant="dashboard" accent="#818cf8" title="ERP · Semua cabang" class="w-full max-w-md" />}
+                {s.icon === 'pos' && <AppMockup variant="kasir" accent="#22d3ee" title="Kasir Toko" class="w-full max-w-md" />}
+                {s.icon === 'dash' && <AppMockup variant="dashboard" accent="#a855f7" title="Dashboard Penjualan" class="w-full max-w-md" />}
+                {s.icon === 'mobile' && <AppMockup variant="mobile" accent="#6366f1" title="Order Sales" class="origin-top scale-[0.82]" />}
+                {s.icon === 'bot' && (
+                  <div class="w-full max-w-sm space-y-3" aria-hidden="true">
+                    <div class="flex items-center gap-3 rounded-2xl border border-white/10 bg-ink-900/80 p-3">
+                      <span class="grid h-9 w-9 place-items-center rounded-full bg-wa text-[#04130a]"><Icon name="wa" size={18} /></span>
+                      <div class="text-sm"><div class="font-semibold">Pengingat otomatis</div><div class="text-xs text-mist">terkirim 08.00 · 126 pelanggan</div></div>
+                    </div>
+                    <div class="ml-auto max-w-[85%] rounded-2xl rounded-tr-sm bg-wa/15 p-3 text-sm">Halo Bu Rina, tagihan SPP bulan ini Rp450.000 jatuh tempo besok. Bayar lewat tautan berikut 👇</div>
+                    <div class="ml-auto max-w-[60%] rounded-xl bg-white/[0.06] px-3 py-2 text-xs text-mist">💳 pay.natakarsa.id/inv-2041</div>
+                    <div class="max-w-[70%] rounded-2xl rounded-tl-sm bg-white/[0.06] p-3 text-sm">Sudah saya bayar ya, terima kasih 🙏</div>
+                    <div class="flex items-center gap-2 text-xs text-emerald-300"><Icon name="check" size={14} /> Pembayaran tercatat otomatis di sistem</div>
+                  </div>
+                )}
+                {s.icon === 'shield' && (
+                  <div class="w-full max-w-sm rounded-2xl border border-white/10 bg-ink-900/80 p-5" aria-hidden="true">
+                    <div class="flex items-center justify-between"><span class="text-sm font-semibold">Status sistem</span><span class="flex items-center gap-1.5 text-xs text-emerald-300"><span class="h-2 w-2 animate-pulse rounded-full bg-emerald-400"></span>Semua normal</span></div>
+                    <div class="mt-4 flex h-8 items-end gap-[3px]">{Array.from({ length: 30 }, (_, k) => <span class="flex-1 rounded-sm bg-emerald-400/70" style={`height:${k === 17 ? 55 : 100}%`}></span>)}</div>
+                    <div class="mt-1 flex justify-between text-[10px] text-mist"><span>30 hari lalu</span><span>Uptime 99,9%</span></div>
+                    <div class="mt-4 space-y-2 text-xs">
+                      {[['Backup database', '02.30 · berhasil'], ['Sertifikat SSL', 'aktif · 74 hari'], ['Pembaruan keamanan', 'terpasang kemarin']].map(([a, b]) => (
+                        <div class="flex items-center justify-between rounded-lg bg-white/[0.04] px-3 py-2"><span>{a}</span><span class="text-mist">{b}</span></div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+              <div class="relative mt-6 flex items-end justify-between gap-6 border-t border-white/10 bg-ink-900/60 px-8 py-6 backdrop-blur">
+                <ul class="flex flex-wrap gap-2">
+                  {s.points.map((pt) => <li class="chip !text-xs"><Icon name="check" size={12} class="mr-1 text-aqua" />{pt}</li>)}
+                </ul>
+                <div class="shrink-0 text-right">
+                  <div class="text-[11px] tracking-[0.14em] text-mist uppercase">{s.from === 'Konsultasi' ? 'Harga' : 'Mulai dari'}</div>
+                  <div class="font-display text-xl font-bold">{s.from === 'Konsultasi' ? 'Sesuai kebutuhan' : s.from}</div>
+                  <a href={link(s.category)} class="mt-1 inline-flex items-center gap-1 text-xs text-brand-300 hover:text-snow">Lihat contoh <Icon name="arrow" size={12} /></a>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
     </div>
   </div>
 </section>
+
+<style>
+  .svc-item { position: relative; }
+  .svc-num { color: color-mix(in oklab, var(--color-white) 30%, transparent); transition: color 0.3s; }
+  .svc-title { color: var(--color-mist); transition: color 0.3s; }
+  .svc-tab:hover .svc-title { color: var(--color-snow); }
+  .svc-plus { color: var(--color-mist); transition: transform 0.4s, background-color 0.3s, color 0.3s; }
+  .svc-item[data-active] .svc-num { color: var(--color-brand-300); }
+  .svc-item[data-active] .svc-title { color: var(--color-snow); }
+  .svc-item[data-active] .svc-plus { transform: rotate(45deg); background: var(--color-snow); color: var(--color-ink-950); border-color: transparent; }
+
+  /* Buka-tutup halus tanpa mengukur tinggi lewat JS */
+  .svc-body { display: grid; grid-template-rows: 0fr; transition: grid-template-rows 0.5s cubic-bezier(0.16, 1, 0.3, 1); }
+  .svc-item[data-active] .svc-body { grid-template-rows: 1fr; }
+
+  /* Garis progres pergantian otomatis */
+  .svc-progress { position: absolute; left: 0; bottom: -1px; height: 1px; width: 100%; transform: scaleX(0); transform-origin: left; background: linear-gradient(90deg, var(--color-brand-400), var(--color-aqua)); }
+  .svc-item[data-active] .svc-progress { transform: scaleX(1); }
+  #svc[data-auto] .svc-item[data-active] .svc-progress { animation: svc-run var(--svc-ms, 6000ms) linear forwards; }
+  #svc[data-paused] .svc-item[data-active] .svc-progress { animation-play-state: paused; }
+  @keyframes svc-run { from { transform: scaleX(0); } to { transform: scaleX(1); } }
+
+  /* Panel: hanya yang aktif terlihat, berganti dengan fade */
+  .svc-panel:not([data-active]) { position: absolute; inset: 0; opacity: 0; pointer-events: none; visibility: hidden; }
+  .svc-panel { transition: opacity 0.5s, transform 0.6s cubic-bezier(0.16, 1, 0.3, 1); }
+  .svc-panel:not([data-active]) { transform: translateY(12px); }
+
+  @media (prefers-reduced-motion: reduce) {
+    .svc-body, .svc-panel { transition: none; }
+  }
+</style>
+
+<script>
+  const root = document.getElementById('svc')!;
+  const items = [...root.querySelectorAll<HTMLElement>('.svc-item')];
+  const panels = [...root.querySelectorAll<HTMLElement>('.svc-panel')];
+  const MS = 6000;
+  const desktop = matchMedia('(min-width: 1024px)');
+  const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+  let cur = 0;
+  let timer = 0;
+
+  const show = (i: number) => {
+    cur = i;
+    items.forEach((it, k) => {
+      const on = k === i;
+      it.toggleAttribute('data-active', on);
+      it.querySelector('[role=tab]')!.setAttribute('aria-selected', String(on));
+    });
+    panels.forEach((p, k) => p.toggleAttribute('data-active', k === i));
+  };
+
+  // Pergantian otomatis hanya di desktop, berhenti setelah pengunjung memilih sendiri
+  const stopAuto = () => { clearInterval(timer); timer = 0; root.removeAttribute('data-auto'); };
+  const startAuto = () => {
+    if (reduce || !desktop.matches || timer) return;
+    root.setAttribute('data-auto', '');
+    root.style.setProperty('--svc-ms', MS + 'ms');
+    timer = window.setInterval(() => { if (!root.hasAttribute('data-paused')) show((cur + 1) % items.length); }, MS);
+  };
+
+  items.forEach((it, i) => it.querySelector('button')!.addEventListener('click', () => {
+    stopAuto();
+    // Di HP: klik item yang terbuka = tutup
+    if (!desktop.matches && it.hasAttribute('data-active')) { it.removeAttribute('data-active'); return; }
+    show(i);
+    (window as any).track?.('service_view', { layanan: it.querySelector('.svc-title')?.textContent });
+  }));
+  root.addEventListener('pointerenter', () => root.setAttribute('data-paused', ''));
+  root.addEventListener('pointerleave', () => root.removeAttribute('data-paused'));
+
+  // Panah atas/bawah untuk pengguna keyboard
+  root.querySelector('[role=tablist]')!.addEventListener('keydown', (e) => {
+    const k = (e as KeyboardEvent).key;
+    if (k !== 'ArrowDown' && k !== 'ArrowUp') return;
+    e.preventDefault();
+    stopAuto();
+    show((cur + (k === 'ArrowDown' ? 1 : -1) + items.length) % items.length);
+    items[cur].querySelector('button')!.focus();
+  });
+
+  // Mulai berputar saat section terlihat
+  new IntersectionObserver(([e]) => (e.isIntersecting ? (root.removeAttribute('data-paused'), startAuto()) : root.setAttribute('data-paused', '')), { threshold: 0.35 }).observe(root);
+</script>

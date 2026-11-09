@@ -2,10 +2,15 @@
 import '@fontsource-variable/inter';
 import '@fontsource-variable/plus-jakarta-sans';
 import '../styles/global.css';
+// Font utama di-preload agar teks tidak berganti ukuran saat font selesai dimuat (mencegah CLS)
+import jakartaUrl from '@fontsource-variable/plus-jakarta-sans/files/plus-jakarta-sans-latin-wght-normal.woff2?url';
+import interUrl from '@fontsource-variable/inter/files/inter-latin-wght-normal.woff2?url';
 import Navbar from '../components/Navbar.astro';
 import Footer from '../components/Footer.astro';
 import FloatingWA from '../components/FloatingWA.astro';
-import { site, faqs } from '../data/site';
+import CompanyProfile from '../components/CompanyProfile.astro';
+import Analytics from '../components/Analytics.astro';
+import { site } from '../data/site';
 
 interface Props {
   title?: string;
@@ -15,6 +20,8 @@ interface Props {
   faqSchema?: boolean;
 }
 const { title = site.title, description = site.description, image = '/og.png', schema = [], faqSchema = false } = Astro.props;
+const { kontak, faq } = Astro.locals.content;
+const faqs = faq.items;
 const canonical = new URL(Astro.url.pathname, Astro.site ?? site.url).href;
 const ogImage = new URL(image, Astro.site ?? site.url).href;
 
@@ -23,9 +30,9 @@ const org = {
   '@type': 'Organization',
   name: site.name,
   url: site.url,
-  email: site.email,
+  email: kontak.email,
   logo: new URL('/favicon.svg', site.url).href,
-  sameAs: site.socials.map((s) => s.href),
+  sameAs: kontak.socials.map((s) => s.href),
 };
 const faqLd = faqSchema
   ? {
@@ -45,6 +52,8 @@ const ld = [org, ...(faqLd ? [faqLd] : []), ...schema];
     <meta name="description" content={description} />
     <link rel="canonical" href={canonical} />
     <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <link rel="preload" href={jakartaUrl} as="font" type="font/woff2" crossorigin />
+    <link rel="preload" href={interUrl} as="font" type="font/woff2" crossorigin />
     <meta name="theme-color" content="#0a0a0f" id="meta-theme" />
     <meta property="og:type" content="website" />
     <meta property="og:site_name" content={site.name} />
@@ -77,15 +86,29 @@ const ld = [org, ...(faqLd ? [faqLd] : []), ...schema];
     </main>
     <Footer />
     <FloatingWA />
+    <CompanyProfile />
+    <Analytics />
 
     <script>
-      // ---- Analytics helper: kirim event ke dataLayer (GA4/GTM) bila terpasang ----
+      // ---- Analytics helper: satu fungsi, diteruskan ke semua alat yang terpasang ----
       const w = window as any;
       w.dataLayer = w.dataLayer || [];
+      // Event konversi standar Meta Pixel
+      const pixelStd: Record<string, string> = { lead_submit: 'Lead', cta_whatsapp_click: 'Contact', booking_open: 'Schedule', profile_download: 'Lead' };
       w.track = (event: string, params: Record<string, unknown> = {}) => {
-        w.dataLayer.push({ event, ...params });
-        if (typeof w.umami?.track === 'function') w.umami.track(event, params);
+        try {
+          if (typeof w.gtag === 'function') w.gtag('event', event, params);
+          else w.dataLayer.push({ event, ...params });
+          if (typeof w.umami?.track === 'function') w.umami.track(event, params);
+          if (typeof w.clarity === 'function') w.clarity('event', event);
+          if (typeof w.fbq === 'function') pixelStd[event] ? w.fbq('track', pixelStd[event], params) : w.fbq('trackCustom', event, params);
+        } catch {}
       };
+      // Elemen dengan data-track="nama_event" otomatis tercatat saat diklik
+      document.addEventListener('click', (e) => {
+        const el = (e.target as HTMLElement).closest<HTMLElement>('[data-track]');
+        if (el) w.track(el.dataset.track!, { section: el.closest('section')?.id || 'global' });
+      });
 
       // ---- Simpan UTM kunjungan pertama ----
       try {
@@ -100,11 +123,12 @@ const ld = [org, ...(faqLd ? [faqLd] : []), ...schema];
         (entries) => entries.forEach((e) => { if (e.isIntersecting) { e.target.classList.add('is-in'); io.unobserve(e.target); } }),
         { rootMargin: '0px 0px -8% 0px', threshold: 0.08 }
       );
-      document.querySelectorAll('[data-reveal]').forEach((el) => {
-        // Elemen yang sudah terlihat saat halaman dibuka langsung ditampilkan
-        if (el.getBoundingClientRect().top < innerHeight) el.classList.add('is-in');
-        else io.observe(el);
-      });
+      // Elemen yang sudah terlihat saat halaman dibuka langsung ditampilkan.
+      // Semua posisi dibaca dulu, baru class diubah: membaca posisi di sela perubahan class
+      // memaksa browser menghitung ulang layout berkali-kali (layout thrashing).
+      const revealEls = [...document.querySelectorAll('[data-reveal]')];
+      const inView = revealEls.map((el) => el.getBoundingClientRect().top < innerHeight);
+      revealEls.forEach((el, i) => (inView[i] ? el.classList.add('is-in') : io.observe(el)));
 
       // ---- Ganti tema terang / gelap ----
       const root = document.documentElement;

@@ -1,6 +1,7 @@
 ---
 import Icon from './Icon.astro';
-import { nav, waLink } from '../data/site';
+import { nav } from '../data/site';
+const { waLink } = Astro.locals.content;
 ---
 <header id="navbar" class="fixed inset-x-0 top-0 z-50 transition-all duration-500">
   <div class="container-x">
@@ -24,7 +25,7 @@ import { nav, waLink } from '../data/site';
     </nav>
   </div>
 
-  <div id="mobile-menu" class="pointer-events-none fixed inset-0 z-40 bg-ink-950/95 opacity-0 backdrop-blur-xl transition-opacity duration-300 md:hidden" aria-hidden="true">
+  <div id="mobile-menu" class="pointer-events-none fixed inset-0 z-40 bg-ink-950/95 opacity-0 backdrop-blur-xl transition-opacity duration-300 md:hidden" aria-hidden="true" inert>
     <div class="flex h-full flex-col px-6 pt-24 pb-10">
       <ul class="space-y-2">
         {nav.map((n, i) => (
@@ -61,6 +62,7 @@ import { nav, waLink } from '../data/site';
   const setOpen = (open: boolean) => {
     menu.classList.toggle('open', open);
     menu.setAttribute('aria-hidden', String(!open));
+    menu.inert = !open; // menu tertutup: link di dalamnya tidak bisa difokus keyboard
     btn.setAttribute('aria-expanded', String(open));
     btn.setAttribute('aria-label', open ? 'Tutup menu' : 'Buka menu');
     document.body.style.overflow = open ? 'hidden' : '';

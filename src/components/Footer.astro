@@ -1,5 +1,6 @@
 ---
-import { site, nav, waLink } from '../data/site';
+import { nav } from '../data/site';
+const { kontak: site, waLink } = Astro.locals.content;
 const year = new Date().getFullYear();
 ---
 <footer class="border-t border-white/5 bg-ink-950">
@@ -15,7 +16,10 @@ const year = new Date().getFullYear();
       <h3 class="text-sm font-semibold text-snow">Menu</h3>
       <ul class="mt-4 space-y-2 text-sm text-mist">
         {nav.map((n) => <li><a href={n.href} class="hover:text-snow">{n.label}</a></li>)}
+        {site.bookingUrl && <li><a href={site.bookingUrl} target="_blank" rel="noopener" data-track="booking_open" class="hover:text-snow">Jadwalkan konsultasi</a></li>}
+        {site.companyProfileUrl && <li><button type="button" data-open-profile class="hover:text-snow">Company profile (PDF)</button></li>}
         <li><a href="/kebijakan-privasi" class="hover:text-snow">Kebijakan privasi</a></li>
+        {(import.meta.env.PUBLIC_GA4_ID || import.meta.env.PUBLIC_CLARITY_ID || import.meta.env.PUBLIC_META_PIXEL_ID) && <li><button type="button" data-consent-open class="hover:text-snow">Pengaturan cookie</button></li>}
       </ul>
     </div>
     <div>
@@ -31,5 +35,5 @@ const year = new Date().getFullYear();
       </div>
     </div>
   </div>
-  <div class="border-t border-white/5 py-6 text-center text-xs text-mist">© {year} {site.legal}. Semua hak dilindungi.</div>
+  <div class="border-t border-white/5 py-6 text-center text-xs text-mist">© {year} {site.legal}{site.nib && <> · NIB {site.nib}</>}. Semua hak dilindungi.</div>
 </footer>

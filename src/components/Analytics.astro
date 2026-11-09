@@ -1,0 +1,76 @@
+---
+/**
+ * Analytics + banner persetujuan cookie.
+ * Isi ID di file .env (lihat .env.example). ID yang kosong = alat itu tidak dimuat.
+ * - Umami: tanpa cookie, langsung dimuat.
+ * - GA4, Microsoft Clarity, Meta Pixel: memakai cookie, baru dimuat setelah pengunjung menekan "Terima".
+ */
+const env = import.meta.env;
+const needsConsent = Boolean(env.PUBLIC_GA4_ID || env.PUBLIC_CLARITY_ID || env.PUBLIC_META_PIXEL_ID);
+---
+{env.PUBLIC_UMAMI_WEBSITE_ID && (
+  <script is:inline defer src={env.PUBLIC_UMAMI_SRC || 'https://cloud.umami.is/script.js'} data-website-id={env.PUBLIC_UMAMI_WEBSITE_ID}></script>
+)}
+
+{needsConsent && (
+  <div id="consent" class="consent glass fixed inset-x-3 bottom-3 z-[60] hidden max-w-xl rounded-2xl p-4 text-sm sm:inset-x-auto sm:left-5 sm:bottom-5 sm:p-5" role="dialog" aria-label="Persetujuan cookie" aria-live="polite">
+    <p class="text-snow/90">Kami memakai cookie analitik untuk memahami cara situs ini dipakai dan memperbaikinya. Data tidak dijual ke pihak lain. <a href="/kebijakan-privasi" class="underline">Pelajari</a></p>
+    <div class="mt-3 flex gap-2">
+      <button type="button" class="btn btn-primary !px-4 !py-2 text-sm" data-consent="yes">Terima</button>
+      <button type="button" class="btn btn-ghost !px-4 !py-2 text-sm" data-consent="no">Tolak</button>
+    </div>
+  </div>
+)}
+
+<script>
+  const env = import.meta.env;
+  const w = window as any;
+  const GA = env.PUBLIC_GA4_ID as string | undefined;
+  const CLARITY = env.PUBLIC_CLARITY_ID as string | undefined;
+  const PIXEL = env.PUBLIC_META_PIXEL_ID as string | undefined;
+
+  const addScript = (src: string) => { const s = document.createElement('script'); s.async = true; s.src = src; document.head.appendChild(s); };
+
+  const loadTrackers = () => {
+    if (GA) {
+      w.dataLayer = w.dataLayer || [];
+      w.gtag = function () { w.dataLayer.push(arguments); };
+      w.gtag('js', new Date());
+      w.gtag('config', GA);
+      addScript(`https://www.googletagmanager.com/gtag/js?id=${GA}`);
+    }
+    if (CLARITY) {
+      w.clarity = w.clarity || function () { (w.clarity.q = w.clarity.q || []).push(arguments); };
+      addScript(`https://www.clarity.ms/tag/${CLARITY}`);
+    }
+    if (PIXEL) {
+      const f: any = (w.fbq = function () { f.callMethod ? f.callMethod.apply(f, arguments) : f.queue.push(arguments); });
+      if (!w._fbq) w._fbq = f;
+      f.push = f; f.loaded = true; f.version = '2.0'; f.queue = [];
+      addScript('https://connect.facebook.net/en_US/fbevents.js');
+      w.fbq('init', PIXEL);
+      w.fbq('track', 'PageView');
+    }
+  };
+
+  let choice: string | null = null;
+  try { choice = localStorage.getItem('nk_consent'); } catch {}
+  const banner = document.getElementById('consent');
+  if (choice === 'yes') loadTrackers();
+  else if (!choice && banner) setTimeout(() => banner.classList.remove('hidden'), 1500); // tidak mengganggu tampilan awal
+
+  banner?.addEventListener('click', (e) => {
+    const v = (e.target as HTMLElement).closest<HTMLElement>('[data-consent]')?.dataset.consent;
+    if (!v) return;
+    try { localStorage.setItem('nk_consent', v); } catch {}
+    banner.classList.add('hidden');
+    if (v === 'yes') loadTrackers();
+  });
+
+  // Tautan "Pengaturan cookie" di footer membuka banner lagi
+  document.addEventListener('click', (e) => {
+    if (!(e.target as HTMLElement).closest('[data-consent-open]')) return;
+    e.preventDefault();
+    banner?.classList.remove('hidden');
+  });
+</script>

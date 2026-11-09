@@ -1,5 +1,5 @@
 ---
-import { faqs } from '../data/site';
+const faqs = Astro.locals.content.faq.items;
 ---
 <section id="faq" class="section">
   <div class="container-x grid gap-12 lg:grid-cols-[0.8fr_1.2fr]">

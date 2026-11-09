@@ -1,0 +1,60 @@
+---
+import Admin from '../../layouts/Admin.astro';
+import { verifyLogin, createSession } from '../../lib/server/auth';
+import { clientIp, isHttps, hit, blocked, clearHits } from '../../lib/server/http';
+
+// Hanya terima tujuan redirect di dalam /admin (cegah open redirect)
+const rawNext = Astro.url.searchParams.get('next') || '/admin';
+const next = /^\/admin(\/[^/\\]|\/?$|\?)/.test(rawNext) && !rawNext.startsWith('//') ? rawNext : '/admin';
+if (Astro.locals.user) return Astro.redirect(next);
+
+let error = '';
+let email = '';
+if (Astro.request.method === 'POST') {
+  const form = await Astro.request.formData();
+  email = String(form.get('email') || '').trim().toLowerCase().slice(0, 190);
+  const password = String(form.get('password') || '').slice(0, 200);
+  const ip = clientIp(Astro);
+  const ipKey = `login:ip:${ip}`;
+  const emKey = `login:em:${email}`;
+  const WINDOW = 15 * 60_000;
+
+  if (blocked(ipKey, 20) || blocked(emKey, 5)) {
+    error = 'Terlalu banyak percobaan gagal. Coba lagi dalam 15 menit.';
+  } else if (!email || !password) {
+    error = 'Isi email dan password.';
+  } else {
+    const user = await verifyLogin(email, password);
+    if (user) {
+      clearHits(emKey);
+      await createSession(Astro.cookies, user.id, ip, Astro.request.headers.get('user-agent') || '', isHttps(Astro));
+      return Astro.redirect(next, 303);
+    }
+    hit(ipKey, 20, WINDOW);
+    hit(emKey, 5, WINDOW);
+    error = 'Email atau password salah.';
+  }
+}
+---
+<Admin title="Masuk">
+  <main class="grid min-h-dvh place-items-center px-4 py-12">
+    <div class="w-full max-w-sm">
+      <a href="/" class="flex items-center justify-center gap-2.5 font-display text-lg font-bold">
+        <img src="/favicon.svg" alt="" width="32" height="32" class="h-8 w-8" />
+        <span>Natakarsa<span class="text-gradient"> Tech</span></span>
+      </a>
+      <form method="post" class="card mt-8 p-6 sm:p-8">
+        <h1 class="text-xl font-bold">Masuk ke panel admin</h1>
+        {error && <p class="mt-4 rounded-xl bg-red-500/10 px-4 py-3 text-sm text-red-300" role="alert">{error}</p>}
+        <label class="adm-label mt-6">Email
+          <input name="email" type="email" class="input mt-1.5" required autocomplete="username" value={email} autofocus />
+        </label>
+        <label class="adm-label mt-4">Password
+          <input name="password" type="password" class="input mt-1.5" required autocomplete="current-password" />
+        </label>
+        <button class="btn btn-primary mt-6 w-full">Masuk</button>
+      </form>
+      <p class="mt-6 text-center text-xs text-mist">Lupa password? Minta admin lain meresetnya di menu Pengguna,<br />atau jalankan <code>npm run admin:reset</code> di server.</p>
+    </div>
+  </main>
+</Admin>

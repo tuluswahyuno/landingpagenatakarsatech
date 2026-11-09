@@ -1,0 +1,90 @@
+---
+import Icon from './Icon.astro';
+const { kontak: site } = Astro.locals.content;
+---
+{site.companyProfileUrl && (
+  <dialog id="profile-dialog" data-url={site.companyProfileUrl} class="profile-dialog glass m-auto w-[min(92vw,440px)] rounded-3xl p-0 text-snow" aria-labelledby="profile-title">
+    <form id="profile-form" class="p-6 sm:p-8" novalidate>
+      <div class="flex items-start justify-between gap-4">
+        <div>
+          <h2 id="profile-title" class="text-xl font-bold">Unduh company profile</h2>
+          <p class="mt-1 text-sm text-mist">Profil perusahaan, legalitas, portofolio, dan proses kerja kami dalam satu PDF.</p>
+        </div>
+        <button type="button" class="grid h-9 w-9 shrink-0 place-items-center rounded-full hover:bg-white/10" data-close aria-label="Tutup"><Icon name="x" size={18} /></button>
+      </div>
+      <input type="text" name="website" tabindex="-1" autocomplete="off" class="absolute -left-[9999px]" aria-hidden="true" />
+      <div class="mt-6 space-y-4">
+        <label class="block text-sm">Nama
+          <input name="nama" class="input mt-1.5" required autocomplete="name" />
+        </label>
+        <label class="block text-sm">Email
+          <input name="email" type="email" class="input mt-1.5" required autocomplete="email" />
+        </label>
+        <label class="block text-sm">Instansi / perusahaan <span class="text-mist">(opsional)</span>
+          <input name="usaha" class="input mt-1.5" autocomplete="organization" />
+        </label>
+        <label class="flex items-start gap-2 text-xs text-mist">
+          <input type="checkbox" name="setuju" class="mt-0.5 accent-brand-500" />
+          <span>Saya setuju data ini dipakai untuk mengirim company profile dan menghubungi saya, sesuai <a href="/kebijakan-privasi" class="underline">kebijakan privasi</a>.</span>
+        </label>
+        <div id="profile-turnstile" class="empty:hidden"></div>
+      </div>
+      <p id="profile-msg" class="mt-4 hidden rounded-xl px-4 py-2 text-sm" role="status"></p>
+      <button type="submit" id="profile-submit" class="btn btn-primary mt-6 w-full"><Icon name="download" size={18} /> Unduh PDF</button>
+    </form>
+  </dialog>
+)}
+
+<style>
+  .profile-dialog::backdrop { background: rgb(5 5 10 / 0.7); backdrop-filter: blur(4px); }
+  .profile-dialog { background: var(--color-ink-900); border: 1px solid color-mix(in oklab, var(--color-white) 10%, transparent); }
+</style>
+
+<script>
+  import { turnstileEnabled, sendLead, mountTurnstile, resetTurnstile } from '../lib/lead';
+  const dlg = document.getElementById('profile-dialog') as HTMLDialogElement | null;
+  if (dlg) {
+    const form = document.getElementById('profile-form') as HTMLFormElement;
+    const msg = document.getElementById('profile-msg')!;
+    const btn = document.getElementById('profile-submit') as HTMLButtonElement;
+    const tsEl = document.getElementById('profile-turnstile')!;
+    let token = () => '';
+    const say = (t: string, ok: boolean) => {
+      msg.textContent = t;
+      msg.className = `mt-4 rounded-xl px-4 py-2 text-sm ${ok ? 'bg-emerald-500/10 text-emerald-300' : 'bg-red-500/10 text-red-300'}`;
+    };
+
+    document.addEventListener('click', (e) => {
+      if ((e.target as HTMLElement).closest('[data-open-profile]')) {
+        e.preventDefault();
+        dlg.showModal();
+        mountTurnstile(tsEl).then((fn) => (token = fn));
+      }
+    });
+    dlg.addEventListener('click', (e) => { if (e.target === dlg || (e.target as HTMLElement).closest('[data-close]')) dlg.close(); });
+
+    const pdfUrl = dlg.dataset.url!;
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const d = new FormData(form);
+      if (d.get('website')) return;
+      if (String(d.get('nama') || '').trim().length < 2) return say('Isi nama Anda.', false);
+      if (!/^\S+@\S+\.\S+$/.test(String(d.get('email') || ''))) return say('Format email belum valid.', false);
+      if (!d.get('setuju')) return say('Centang persetujuan terlebih dahulu.', false);
+      if (turnstileEnabled && !token()) return say('Tunggu sebentar, verifikasi anti-spam sedang berjalan.', false);
+      btn.disabled = true;
+      const res = await sendLead({ tipe: 'profile', nama: d.get('nama'), email: d.get('email'), usaha: d.get('usaha'), website: '', turnstile: token() });
+      btn.disabled = false;
+      resetTurnstile(tsEl);
+      // Gagal simpan tidak menghalangi unduhan: pengunjung tetap mendapat PDF-nya.
+      // Tautan ditampilkan (bukan window.open) karena tab baru setelah menunggu jaringan diblokir browser.
+      say(res.ok ? 'Terima kasih! Salinannya juga kami kirim ke email Anda. ' : 'Silakan unduh di sini: ', true);
+      const a = document.createElement('a');
+      a.href = pdfUrl; a.target = '_blank'; a.rel = 'noopener'; a.className = 'font-semibold underline';
+      a.textContent = 'Buka company profile (PDF)';
+      a.addEventListener('click', () => (window as any).track?.('profile_download', {}));
+      msg.appendChild(a);
+      form.reset();
+    });
+  }
+</script>

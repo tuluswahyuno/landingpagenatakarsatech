@@ -1,0 +1,56 @@
+---
+import Admin from '../../layouts/Admin.astro';
+import { one, exec } from '../../lib/server/db';
+import { hashPassword, passwordProblem, verifyLogin, destroyUserSessions } from '../../lib/server/auth';
+
+const me = Astro.locals.user!;
+let error = '';
+
+if (Astro.request.method === 'POST') {
+  const f = await Astro.request.formData();
+  const action = String(f.get('action'));
+  if (action === 'name') {
+    const name = String(f.get('name') || '').trim().slice(0, 100);
+    if (!name) error = 'Nama tidak boleh kosong.';
+    else {
+      await exec('UPDATE users SET name = ? WHERE id = ?', [name, me.id]);
+      return Astro.redirect('/admin/akun?ok=saved', 303);
+    }
+  }
+  if (action === 'password') {
+    const current = String(f.get('current') || '');
+    const pw = String(f.get('password') || '');
+    if (!(await verifyLogin(me.email, current))) error = 'Password lama salah.';
+    else if (pw !== String(f.get('confirm') || '')) error = 'Konfirmasi password tidak sama.';
+    else if ((error = passwordProblem(pw))) {}
+    else {
+      await exec('UPDATE users SET password_hash = ? WHERE id = ?', [await hashPassword(pw), me.id]);
+      await destroyUserSessions(me.id, Astro.cookies); // keluarkan sesi di perangkat lain
+      return Astro.redirect('/admin/akun?ok=password', 303);
+    }
+  }
+}
+const sessions = Number((await one<any>('SELECT COUNT(*) AS n FROM sessions WHERE user_id = ? AND expires_at > UTC_TIMESTAMP()', [me.id]))?.n ?? 0);
+---
+<Admin title="Akun saya" error={error}>
+  <div class="grid max-w-4xl gap-6 lg:grid-cols-2">
+    <form method="post" class="card h-fit space-y-4 p-6">
+      <input type="hidden" name="action" value="name" />
+      <h2 class="font-semibold">Profil</h2>
+      <label class="adm-label">Nama <input name="name" value={me.name} required maxlength="100" class="input mt-1.5" /></label>
+      <label class="adm-label">Email <input value={me.email} disabled class="input mt-1.5 opacity-60" /></label>
+      <p class="adm-help">Peran: {me.role === 'admin' ? 'Admin' : 'Sales'} · Login aktif di {sessions} perangkat.</p>
+      <button class="btn btn-primary btn-sm">Simpan</button>
+    </form>
+
+    <form method="post" class="card space-y-4 p-6">
+      <input type="hidden" name="action" value="password" />
+      <h2 class="font-semibold">Ganti password</h2>
+      <label class="adm-label">Password lama <input name="current" type="password" required autocomplete="current-password" class="input mt-1.5" /></label>
+      <label class="adm-label">Password baru <input name="password" type="password" required minlength="10" maxlength="72" autocomplete="new-password" class="input mt-1.5" /></label>
+      <label class="adm-label">Ulangi password baru <input name="confirm" type="password" required autocomplete="new-password" class="input mt-1.5" /></label>
+      <p class="adm-help">Min. 10 karakter, huruf + angka. Perangkat lain yang sedang login akan dikeluarkan.</p>
+      <button class="btn btn-primary btn-sm">Ganti password</button>
+    </form>
+  </div>
+</Admin>

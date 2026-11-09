@@ -116,7 +116,7 @@
     @apply mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8;
   }
   .section {
-    @apply relative py-20 sm:py-28;
+    @apply relative py-14 sm:py-16 lg:py-20;
   }
   .eyebrow {
     @apply inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.04] px-3 py-1 text-xs font-medium tracking-wide text-brand-300 uppercase;

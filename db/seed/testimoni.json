@@ -1,0 +1,7 @@
+{
+  "items": [
+    { "quote": "Dulu rekap stok tiap akhir bulan makan 3 hari. Sekarang tinggal buka dashboard.", "name": "Pemilik Toko Bangunan", "role": "Retail, Jawa Tengah", "photo": "", "video": "", "contoh": true },
+    { "quote": "Tim lapangan input pesanan dari HP, admin langsung dapat notifikasi. Tidak ada lagi pesanan terlewat.", "name": "Manajer Operasional", "role": "Distributor FMCG", "photo": "", "video": "", "contoh": true },
+    { "quote": "Prosesnya jelas dari awal: ada prototype, timeline, dan training. Tim kami cepat terbiasa.", "name": "Kepala Administrasi", "role": "Klinik Pratama", "photo": "", "video": "", "contoh": true }
+  ]
+}

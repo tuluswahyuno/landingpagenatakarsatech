@@ -1,6 +1,6 @@
 ---
 import Icon from './Icon.astro';
-import { testimonials } from '../data/site';
+const testimonials = Astro.locals.content.testimoni.items;
 ---
 {testimonials.length > 0 && (
 <section id="testimoni" class="section">
@@ -17,8 +17,11 @@ import { testimonials } from '../data/site';
             {t.contoh && <span class="badge-contoh ml-auto" title="Contoh, akan diganti testimoni asli">Contoh</span>}
           </div>
           <blockquote class="mt-5 flex-1 text-lg leading-relaxed text-snow/90">“{t.quote}”</blockquote>
+          {t.video && <a href={t.video} target="_blank" rel="noopener" data-track="testimonial_video" class="mt-4 inline-flex items-center gap-2 text-sm font-medium text-brand-300 hover:underline"><Icon name="play" size={16} /> Tonton video testimoni</a>}
           <figcaption class="mt-6 flex items-center gap-3 border-t border-white/5 pt-5">
-            <span class="grid h-10 w-10 place-items-center rounded-full bg-gradient-to-br from-brand-500 to-aqua font-bold text-ink-950">{t.name[0]}</span>
+            {t.photo
+              ? <img src={t.photo} alt={`Foto ${t.name}`} width="40" height="40" loading="lazy" decoding="async" class="h-10 w-10 rounded-full object-cover" />
+              : <span class="grid h-10 w-10 place-items-center rounded-full bg-gradient-to-br from-brand-500 to-aqua font-bold text-ink-950">{t.name[0]}</span>}
             <span><span class="block text-sm font-semibold">{t.name}</span><span class="block text-xs text-mist">{t.role}</span></span>
           </figcaption>
         </figure>

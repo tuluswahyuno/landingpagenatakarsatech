@@ -1,0 +1,122 @@
+---
+import Admin from '../../../layouts/Admin.astro';
+import Icon from '../../../components/Icon.astro';
+import { query, one, exec } from '../../../lib/server/db';
+import { hashPassword, passwordProblem, destroyUserSessions } from '../../../lib/server/auth';
+import { fmtDate } from '../../../lib/server/http';
+
+const me = Astro.locals.user!;
+let error = '';
+let draft = { name: '', email: '', role: 'sales' };
+
+if (Astro.request.method === 'POST') {
+  const f = await Astro.request.formData();
+  const action = String(f.get('action'));
+  const id = Number(f.get('id'));
+  const activeAdmins = async () => Number((await one<any>("SELECT COUNT(*) AS n FROM users WHERE role = 'admin' AND active = 1"))?.n ?? 0);
+  const target = id ? await one<any>('SELECT id, role, active FROM users WHERE id = ?', [id]) : null;
+
+  if (action === 'create') {
+    draft = { name: String(f.get('name') || '').trim().slice(0, 100), email: String(f.get('email') || '').trim().toLowerCase().slice(0, 190), role: f.get('role') === 'admin' ? 'admin' : 'sales' };
+    const pw = String(f.get('password') || '');
+    if (!draft.name || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(draft.email)) error = 'Isi nama dan email yang valid.';
+    else if ((error = passwordProblem(pw))) {}
+    else if (await one('SELECT id FROM users WHERE email = ?', [draft.email])) error = 'Email sudah terdaftar.';
+    else {
+      await exec('INSERT INTO users (name, email, password_hash, role) VALUES (?, ?, ?, ?)', [draft.name, draft.email, await hashPassword(pw), draft.role]);
+      return Astro.redirect('/admin/pengguna?ok=created', 303);
+    }
+  } else if (!target) {
+    error = 'Pengguna tidak ditemukan.';
+  } else if (target.id === me.id && action !== 'password') {
+    error = 'Untuk akun sendiri, gunakan menu Akun saya.';
+  } else if (action === 'role') {
+    const role = f.get('role') === 'admin' ? 'admin' : 'sales';
+    if (target.role === 'admin' && role === 'sales' && target.active && (await activeAdmins()) <= 1) error = 'Harus ada minimal satu admin aktif.';
+    else {
+      await exec('UPDATE users SET role = ? WHERE id = ?', [role, id]);
+      return Astro.redirect('/admin/pengguna?ok=saved', 303);
+    }
+  } else if (action === 'toggle') {
+    if (target.active && target.role === 'admin' && (await activeAdmins()) <= 1) error = 'Harus ada minimal satu admin aktif.';
+    else {
+      await exec('UPDATE users SET active = 1 - active WHERE id = ?', [id]);
+      if (target.active) await destroyUserSessions(id); // langsung keluarkan dari semua perangkat
+      return Astro.redirect('/admin/pengguna?ok=saved', 303);
+    }
+  } else if (action === 'password') {
+    const pw = String(f.get('password') || '');
+    if ((error = passwordProblem(pw))) {}
+    else {
+      await exec('UPDATE users SET password_hash = ? WHERE id = ?', [await hashPassword(pw), id]);
+      await destroyUserSessions(id, target.id === me.id ? Astro.cookies : undefined);
+      return Astro.redirect('/admin/pengguna?ok=password', 303);
+    }
+  }
+}
+
+const users = await query<any>('SELECT id, name, email, role, active, last_login_at FROM users ORDER BY active DESC, name');
+---
+<Admin title="Pengguna" error={error}>
+  <div class="grid gap-6 xl:grid-cols-[1.6fr_1fr]">
+    <div class="card overflow-x-auto">
+      <table class="adm-table">
+        <thead><tr><th>Nama</th><th>Peran</th><th>Login terakhir</th><th class="text-right">Aksi</th></tr></thead>
+        <tbody>
+          {users.map((u) => (
+            <tr class:list={[!u.active && 'opacity-50']}>
+              <td><div class="font-semibold">{u.name}{u.id === me.id && <span class="ml-1 text-xs font-normal text-mist">(Anda)</span>}</div><div class="text-xs text-mist">{u.email}</div>{!u.active && <span class="st st-Batal mt-1">Nonaktif</span>}</td>
+              <td>
+                {u.id === me.id ? <span class="text-sm">{u.role === 'admin' ? 'Admin' : 'Sales'}</span> : (
+                  <form method="post" class="flex items-center gap-1">
+                    <input type="hidden" name="action" value="role" /><input type="hidden" name="id" value={u.id} />
+                    <select name="role" class="input !w-auto !py-1.5 text-sm" onchange="this.form.requestSubmit()" aria-label={`Peran ${u.name}`}>
+                      <option value="admin" selected={u.role === 'admin'}>Admin</option>
+                      <option value="sales" selected={u.role === 'sales'}>Sales</option>
+                    </select>
+                    <noscript><button class="btn btn-ghost btn-sm">OK</button></noscript>
+                  </form>
+                )}
+              </td>
+              <td class="text-xs whitespace-nowrap text-mist">{fmtDate(u.last_login_at)}</td>
+              <td>
+                <div class="flex justify-end gap-2">
+                  <details class="relative">
+                    <summary class="btn btn-ghost btn-sm cursor-pointer list-none"><Icon name="key" size={14} /> Reset</summary>
+                    <form method="post" class="card absolute right-0 z-10 mt-2 w-72 space-y-3 p-4">
+                      <input type="hidden" name="action" value="password" /><input type="hidden" name="id" value={u.id} />
+                      <label class="adm-label">Password baru untuk {u.name}<input name="password" type="text" minlength="10" maxlength="72" required class="input mt-1.5" autocomplete="off" /></label>
+                      <p class="adm-help">Min. 10 karakter, huruf + angka. Sampaikan ke yang bersangkutan lewat jalur pribadi.</p>
+                      <button class="btn btn-primary btn-sm w-full">Simpan password</button>
+                    </form>
+                  </details>
+                  {u.id !== me.id && (
+                    <form method="post" data-confirm={u.active ? `Nonaktifkan ${u.name}? Ia langsung keluar dari semua perangkat.` : undefined}>
+                      <input type="hidden" name="action" value="toggle" /><input type="hidden" name="id" value={u.id} />
+                      <button class="btn btn-ghost btn-sm">{u.active ? 'Nonaktifkan' : 'Aktifkan'}</button>
+                    </form>
+                  )}
+                </div>
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+
+    <form method="post" class="card h-fit space-y-4 p-6">
+      <input type="hidden" name="action" value="create" />
+      <h2 class="font-semibold">Tambah pengguna</h2>
+      <label class="adm-label">Nama <input name="name" value={draft.name} required maxlength="100" class="input mt-1.5" /></label>
+      <label class="adm-label">Email <input name="email" type="email" value={draft.email} required class="input mt-1.5" autocomplete="off" /></label>
+      <label class="adm-label">Password awal <input name="password" type="text" required minlength="10" maxlength="72" class="input mt-1.5" autocomplete="new-password" /><p class="adm-help">Min. 10 karakter, huruf + angka. Minta pengguna menggantinya di menu Akun saya.</p></label>
+      <label class="adm-label">Peran
+        <select name="role" class="input mt-1.5">
+          <option value="sales" selected={draft.role === 'sales'}>Sales: hanya mengelola lead</option>
+          <option value="admin" selected={draft.role === 'admin'}>Admin: semua menu</option>
+        </select>
+      </label>
+      <button class="btn btn-primary w-full"><Icon name="plus" size={16} /> Tambah</button>
+    </form>
+  </div>
+</Admin>

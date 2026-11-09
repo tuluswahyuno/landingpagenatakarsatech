@@ -1,0 +1,9 @@
+{
+  "heroProof": ["30+ aplikasi dibangun", "20+ klien", "Garansi bug hingga 6 bulan"],
+  "stats": [
+    { "value": 30, "suffix": "+", "label": "Aplikasi dibangun" },
+    { "value": 20, "suffix": "+", "label": "Klien terlayani" },
+    { "value": 12000, "suffix": "+", "label": "Jam kerja manual dihemat" },
+    { "value": 5, "suffix": " th", "label": "Pengalaman" }
+  ]
+}

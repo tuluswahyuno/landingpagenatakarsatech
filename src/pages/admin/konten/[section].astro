@@ -1,0 +1,205 @@
+---
+import Admin from '../../../layouts/Admin.astro';
+import Icon from '../../../components/Icon.astro';
+import { one, exec, json } from '../../../lib/server/db';
+import { invalidateContent } from '../../../lib/server/content';
+import { schemas, sections, zodMessage, type SectionKey } from '../../../lib/content-schema';
+
+const key = Astro.params.section as SectionKey;
+if (!(key in schemas)) return new Response('Tidak ditemukan', { status: 404 });
+const def = sections[key];
+
+let error = '';
+let value: unknown;
+if (Astro.request.method === 'POST') {
+  const form = await Astro.request.formData();
+  try {
+    value = JSON.parse(String(form.get('data') || '{}'));
+  } catch {
+    value = {};
+  }
+  const r = schemas[key].safeParse(value);
+  if (!r.success) error = zodMessage(r.error);
+  else {
+    await exec(
+      'INSERT INTO content (`key`, data, updated_by) VALUES (?, ?, ?) ON DUPLICATE KEY UPDATE data = VALUES(data), updated_by = VALUES(updated_by)',
+      [key, JSON.stringify(r.data), Astro.locals.user!.id]
+    );
+    invalidateContent();
+    return Astro.redirect(`/admin/konten/${key}?ok=saved`, 303);
+  }
+} else {
+  value = json((await one<any>('SELECT data FROM content WHERE `key` = ?', [key]))?.data, {});
+}
+---
+<Admin title={def.title} error={error}>
+  <a slot="actions" href="/admin/konten" class="btn btn-ghost btn-sm"><Icon name="arrow-left" size={16} /> <span class="max-sm:hidden">Konten</span></a>
+  <p class="mb-6 max-w-2xl text-sm text-mist">{def.desc}</p>
+
+  <form method="post" id="content-form" class="max-w-3xl">
+    <input type="hidden" name="data" id="content-data" />
+    <div id="editor" data-fields={JSON.stringify(def.fields)} data-value={JSON.stringify(value ?? {})}></div>
+    <noscript><p class="text-red-300">Editor ini membutuhkan JavaScript.</p></noscript>
+    <div class="sticky bottom-0 z-10 -mx-4 mt-8 flex items-center gap-3 border-t border-white/10 bg-ink-900/90 px-4 py-4 backdrop-blur sm:-mx-8 sm:px-8">
+      <button class="btn btn-primary">Simpan perubahan</button>
+      <span id="dirty" class="hidden text-sm text-amber-300">Ada perubahan yang belum disimpan</span>
+    </div>
+  </form>
+</Admin>
+
+<script>
+  type Field = { name: string; label: string; type: string; help?: string; placeholder?: string; fields?: Field[]; titleField?: string; itemName?: string };
+
+  const root = document.getElementById('editor')!;
+  const fields: Field[] = JSON.parse(root.dataset.fields!);
+  const value = JSON.parse(root.dataset.value!);
+  let uid = 0;
+
+  const h = <K extends keyof HTMLElementTagNameMap>(tag: K, props: Record<string, any> = {}, ...kids: (Node | string | null)[]) => {
+    const el = document.createElement(tag);
+    for (const [k, v] of Object.entries(props)) {
+      if (k === 'class') el.className = v;
+      else if (k in el && k !== 'list') (el as any)[k] = v;
+      else el.setAttribute(k, v);
+    }
+    el.append(...(kids.filter(Boolean) as (Node | string)[]));
+    return el;
+  };
+  const iconBtn = (label: string, text: string, onClick: () => void, cls = '') =>
+    h('button', { type: 'button', class: `grid h-8 min-w-8 place-items-center rounded-lg px-2 text-sm hover:bg-white/10 ${cls}`, title: label, 'aria-label': label, onclick: onClick }, text);
+
+  /** Satu kelompok field (objek). Anak langsungnya = pembungkus tiap field. */
+  function build(fs: Field[], v: any): HTMLElement {
+    const box = h('div', { class: 'space-y-5' });
+    fs.forEach((f) => box.append(fieldEl(f, v?.[f.name])));
+    return box;
+  }
+
+  function fieldEl(f: Field, v: any): HTMLElement {
+    const wrap = h('div', { 'data-field': f.name, 'data-type': f.type });
+    const id = `f${++uid}`;
+    const help = f.help ? h('p', { class: 'adm-help' }, f.help) : null;
+
+    if (f.type === 'list') {
+      const items = h('div', { class: 'space-y-3', 'data-items': '' });
+      const add = h('button', { type: 'button', class: 'btn btn-ghost btn-sm mt-3' }, `+ Tambah ${f.itemName ?? 'item'}`);
+      add.addEventListener('click', () => {
+        const it = itemEl(f, {});
+        items.append(it);
+        (it as HTMLDetailsElement).open = true;
+        it.querySelector<HTMLElement>('input,textarea')?.focus();
+        markDirty();
+      });
+      (Array.isArray(v) ? v : []).forEach((x) => items.append(itemEl(f, x)));
+      wrap.className = 'card p-5';
+      wrap.append(...[h('div', { class: 'mb-3 font-semibold' }, f.label), help, items, add].filter((x): x is HTMLElement => !!x));
+      return wrap;
+    }
+
+    const label = h('label', { class: 'adm-label', htmlFor: id }, f.label);
+    let input: HTMLInputElement | HTMLTextAreaElement;
+    if (f.type === 'bool') {
+      input = h('input', { type: 'checkbox', id, class: 'accent-brand-500', checked: !!v });
+      wrap.append(h('label', { class: 'flex items-center gap-2 text-sm', htmlFor: id }, input, f.label));
+      if (help) wrap.append(help);
+      return wrap;
+    }
+    if (f.type === 'textarea' || f.type === 'lines') {
+      input = h('textarea', { id, class: 'input mt-1.5', rows: f.type === 'lines' ? 5 : 4, value: f.type === 'lines' ? (Array.isArray(v) ? v.join('\n') : '') : (v ?? '') });
+    } else {
+      input = h('input', { id, class: 'input mt-1.5', type: f.type === 'number' ? 'number' : 'text', value: v ?? '', placeholder: f.placeholder ?? '' });
+      if (f.type === 'number') input.setAttribute('step', 'any');
+    }
+    if (f.placeholder) input.setAttribute('placeholder', f.placeholder);
+    input.dataset.input = '';
+    wrap.append(label, input);
+    if (f.type === 'image' || f.type === 'file') {
+      const accept = f.type === 'image' ? 'image' : 'pdf';
+      const row = h('div', { class: 'mt-2 flex flex-wrap items-center gap-2' });
+      const prev = h('img', { class: 'hidden h-12 w-12 rounded-lg border border-white/10 object-cover', alt: '' });
+      const open = h('a', { class: 'hidden text-sm text-brand-300 underline', target: '_blank', rel: 'noopener' }, 'Buka file');
+      const sync = () => {
+        const u = input.value.trim();
+        const ok = /^(\/|https:)/.test(u);
+        prev.classList.toggle('hidden', !(ok && accept === 'image'));
+        if (ok && accept === 'image') prev.src = u;
+        open.classList.toggle('hidden', !ok || accept === 'image');
+        open.href = ok ? u : '#';
+      };
+      input.addEventListener('input', sync);
+      const up = h('button', { type: 'button', class: 'btn btn-ghost btn-sm', 'data-upload': id, 'data-accept': accept }, accept === 'image' ? 'Unggah gambar' : 'Unggah PDF');
+      const clear = h('button', { type: 'button', class: 'btn btn-ghost btn-sm' }, 'Kosongkan');
+      clear.addEventListener('click', () => { input.value = ''; input.dispatchEvent(new Event('input', { bubbles: true })); });
+      row.append(prev, up, clear, open);
+      wrap.append(row);
+      sync();
+    }
+    if (help) wrap.append(help);
+    return wrap;
+  }
+
+  function itemEl(f: Field, v: any): HTMLElement {
+    const det = h('details', { class: 'cms-item rounded-2xl border border-white/10' }) as HTMLDetailsElement;
+    const title = h('span', { class: 'min-w-0 flex-1 truncate font-medium' });
+    const setTitle = () => {
+      const t = f.titleField ? (det.querySelector<HTMLInputElement>(`[data-field="${f.titleField}"] [data-input]`)?.value || '') : '';
+      title.textContent = t.trim() || `(${f.itemName ?? 'item'} baru)`;
+    };
+    const move = (dir: -1 | 1) => {
+      const sib = dir < 0 ? det.previousElementSibling : det.nextElementSibling;
+      if (sib) { dir < 0 ? sib.before(det) : sib.after(det); markDirty(); }
+    };
+    const sum = h('summary', { class: 'flex cursor-pointer list-none items-center gap-2 px-4 py-3' },
+      h('span', { class: 'text-mist' }, '▸'), title,
+      iconBtn('Naikkan', '↑', () => move(-1)),
+      iconBtn('Turunkan', '↓', () => move(1)),
+      iconBtn('Hapus', '✕', () => { if (confirm(`Hapus ${f.itemName ?? 'item'} ini?`)) { det.remove(); markDirty(); } }, 'text-red-300'),
+    );
+    sum.querySelectorAll('button').forEach((b) => b.addEventListener('click', (e) => e.preventDefault()));
+    const body = build(f.fields!, v);
+    body.classList.add('border-t', 'border-white/10', 'p-4');
+    det.append(sum, body);
+    det.addEventListener('input', setTitle);
+    setTitle();
+    return det;
+  }
+
+  function collect(box: HTMLElement, fs: Field[]): any {
+    const out: any = {};
+    for (const f of fs) {
+      const w = box.querySelector<HTMLElement>(`:scope > [data-field="${f.name}"]`);
+      if (!w) continue;
+      if (f.type === 'list') {
+        out[f.name] = [...w.querySelectorAll<HTMLElement>(':scope > [data-items] > details')].map((d) => collect(d.querySelector(':scope > div')!, f.fields!));
+      } else if (f.type === 'bool') {
+        out[f.name] = (w.querySelector('input') as HTMLInputElement).checked;
+      } else {
+        const raw = (w.querySelector('[data-input]') as HTMLInputElement).value;
+        out[f.name] = f.type === 'lines' ? raw.split('\n').map((s) => s.trim()).filter(Boolean) : f.type === 'number' ? Number(raw || 0) : raw.trim();
+      }
+    }
+    return out;
+  }
+
+  const editor = build(fields, value);
+  root.append(editor);
+
+  let dirty = false;
+  const dirtyEl = document.getElementById('dirty')!;
+  function markDirty() { dirty = true; dirtyEl.classList.remove('hidden'); }
+  root.addEventListener('input', markDirty);
+  root.addEventListener('change', markDirty);
+  addEventListener('beforeunload', (e) => { if (dirty) e.preventDefault(); });
+
+  document.getElementById('content-form')!.addEventListener('submit', () => {
+    (document.getElementById('content-data') as HTMLInputElement).value = JSON.stringify(collect(editor, fields));
+    dirty = false;
+  });
+</script>
+
+<style is:global>
+  .cms-item[open] > summary > span:first-child { transform: rotate(90deg); }
+  .cms-item > summary { list-style: none; }
+  .cms-item > summary::marker, .cms-item > summary::-webkit-details-marker { display: none; content: ''; }
+  .cms-item > summary > span:first-child { transition: transform 0.2s; }
+</style>

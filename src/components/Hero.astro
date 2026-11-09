@@ -1,13 +1,14 @@
 ---
 import Icon from './Icon.astro';
 import AppMockup from './AppMockup.astro';
-import { heroProof, waLink } from '../data/site';
+const { angka, waLink } = Astro.locals.content;
+const heroProof = angka.heroProof;
 ---
-<section id="hero" class="relative overflow-hidden pt-32 pb-16 sm:pt-40 sm:pb-24">
+<section id="hero" class="relative overflow-hidden pt-28 pb-12 sm:pt-40 sm:pb-24">
   <div class="mesh" aria-hidden="true"></div>
   <div class="bg-grid absolute inset-0" aria-hidden="true"></div>
 
-  <div class="container-x relative grid items-center gap-14 lg:grid-cols-[1.05fr_1fr]">
+  <div class="container-x relative grid items-center gap-10 sm:gap-14 lg:grid-cols-[1.05fr_1fr]">
     <div>
       <span class="eyebrow hero-in"><Icon name="sparkle" size={14} /> Partner otomasi bisnis</span>
       <h1 class="hero-in mt-6 text-4xl leading-[1.05] font-extrabold sm:text-6xl lg:text-[4.25rem]" style="--d:1">
@@ -20,26 +21,29 @@ import { heroProof, waLink } from '../data/site';
         <a href={waLink('Halo Natakarsa Tech, saya ingin konsultasi gratis untuk otomasi bisnis saya.')} target="_blank" rel="noopener" data-section="hero" class="btn btn-wa"><Icon name="wa" /> Konsultasi via WhatsApp</a>
         <a href="#portofolio" class="btn btn-ghost">Lihat portofolio <Icon name="arrow" size={18} /></a>
       </div>
-      <ul class="hero-in mt-8 flex flex-wrap gap-x-5 gap-y-2 text-sm text-mist" style="--d:4">
+      <ul class="hero-in mt-7 flex flex-wrap gap-x-4 gap-y-2 text-sm text-mist sm:mt-8 sm:gap-x-5" style="--d:4">
         {heroProof.map((p) => <li class="flex items-center gap-1.5"><Icon name="check" size={16} class="text-aqua" />{p}</li>)}
       </ul>
     </div>
 
-    <div id="hero-stage" class="relative mx-auto h-[420px] w-full max-w-[560px] sm:h-[500px]" aria-hidden="true">
-      <div class="absolute inset-8 rounded-full bg-brand-500/20 blur-3xl"></div>
-      <div class="float-layer absolute top-6 left-0 w-[88%] sm:top-4" style="--depth:-14px">
-        <div class="bob"><AppMockup variant="dashboard" accent="#818cf8" title="natakarsa.app / dashboard" /></div>
-      </div>
-      <div class="float-layer absolute right-0 bottom-0 w-[64%] sm:bottom-6" style="--depth:22px">
-        <div class="bob-2"><AppMockup variant="kasir" accent="#22d3ee" title="Kasir · Cabang 2" /></div>
-      </div>
-      <div class="float-layer absolute bottom-[-10px] left-[2%] hidden sm:block" style="--depth:34px">
-        <div class="bob-3 origin-bottom-left scale-[0.78]"><AppMockup variant="mobile" accent="#a855f7" title="Sales Order" /></div>
-      </div>
-      <div class="float-layer glass absolute top-0 right-2 rounded-2xl px-4 py-3 sm:right-6" style="--depth:40px">
-        <div class="bob-2 flex items-center gap-3">
-          <span class="grid h-9 w-9 place-items-center rounded-xl bg-emerald-400/15 text-emerald-300"><Icon name="check" size={18} /></span>
-          <div><div class="text-xs text-mist">Laporan otomatis</div><div class="text-sm font-semibold">Terkirim 07.00 WIB</div></div>
+    <!-- Di mobile, ilustrasi dirender ukuran desktop (560×500) lalu diperkecil proporsional agar tidak sesak. -->
+    <div id="hero-stage" class="relative mx-auto w-full max-w-[560px] max-sm:aspect-[56/50] sm:h-[500px]" aria-hidden="true">
+      <div id="hero-stage-inner" class="absolute top-0 left-0 origin-top-left max-sm:h-[500px] max-sm:w-[560px] max-sm:scale-[var(--s,0.64)] sm:inset-0">
+        <div class="absolute inset-8 rounded-full bg-brand-500/20 blur-3xl"></div>
+        <div class="float-layer absolute top-4 left-0 w-[88%]" style="--depth:-14px">
+          <div class="bob"><AppMockup variant="dashboard" accent="#818cf8" title="natakarsa.app / dashboard" /></div>
+        </div>
+        <div class="float-layer absolute right-0 bottom-6 w-[64%]" style="--depth:22px">
+          <div class="bob-2"><AppMockup variant="kasir" accent="#22d3ee" title="Kasir · Cabang 2" /></div>
+        </div>
+        <div class="float-layer absolute bottom-[-10px] left-[2%]" style="--depth:34px">
+          <div class="bob-3 origin-bottom-left scale-[0.78]"><AppMockup variant="mobile" accent="#a855f7" title="Sales Order" /></div>
+        </div>
+        <div class="float-layer glass absolute top-0 right-6 rounded-2xl px-4 py-3" style="--depth:40px">
+          <div class="bob-2 flex items-center gap-3">
+            <span class="grid h-9 w-9 place-items-center rounded-xl bg-emerald-400/15 text-emerald-300"><Icon name="check" size={18} /></span>
+            <div><div class="text-xs text-mist">Laporan otomatis</div><div class="text-sm font-semibold">Terkirim 07.00 WIB</div></div>
+          </div>
         </div>
       </div>
     </div>
@@ -48,6 +52,9 @@ import { heroProof, waLink } from '../data/site';
 
 <script>
   const stage = document.getElementById('hero-stage');
+  // Skala ilustrasi mengikuti lebar layar (hanya berpengaruh di mobile)
+  if (stage) new ResizeObserver(() => stage.style.setProperty('--s', String(stage.clientWidth / 560))).observe(stage);
+
   const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
   if (stage && !reduce) {
     let raf = 0;

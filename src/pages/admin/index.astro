@@ -1,0 +1,104 @@
+---
+import Admin from '../../layouts/Admin.astro';
+import Icon from '../../components/Icon.astro';
+import { query, one } from '../../lib/server/db';
+import { STATUSES } from '../../lib/server/leads';
+import { fmtDate } from '../../lib/server/http';
+
+const byStatus = Object.fromEntries(STATUSES.map((s) => [s, 0])) as Record<string, number>;
+for (const r of await query<{ status: string; n: number }>("SELECT status, COUNT(*) AS n FROM leads WHERE tipe = 'Brief' GROUP BY status")) byStatus[r.status] = Number(r.n);
+
+const t = await one<any>(
+  `SELECT
+     SUM(created_at >= UTC_TIMESTAMP() - INTERVAL 7 DAY) AS w,
+     SUM(created_at >= UTC_TIMESTAMP() - INTERVAL 30 DAY) AS m,
+     SUM(tipe = 'Company profile' AND created_at >= UTC_TIMESTAMP() - INTERVAL 30 DAY) AS p
+   FROM leads`
+);
+const total = Object.values(byStatus).reduce((a, b) => a + b, 0);
+const conv = total ? Math.round((byStatus.Deal / total) * 100) : 0;
+
+// Lead "Baru" yang belum ditangani lebih dari 1 hari
+const waiting = await query<any>(
+  "SELECT id, nama, usaha, bisnis, created_at FROM leads WHERE tipe = 'Brief' AND status = 'Baru' AND created_at < UTC_TIMESTAMP() - INTERVAL 1 DAY ORDER BY created_at LIMIT 8"
+);
+const latest = await query<any>('SELECT id, nama, usaha, tipe, status, bisnis, budget, created_at FROM leads ORDER BY id DESC LIMIT 8');
+const sources = await query<any>(
+  "SELECT IF(utm_source = '', 'langsung', utm_source) AS src, COUNT(*) AS n FROM leads WHERE created_at >= UTC_TIMESTAMP() - INTERVAL 90 DAY GROUP BY src ORDER BY n DESC LIMIT 6"
+);
+const srcMax = Math.max(1, ...sources.map((s) => Number(s.n)));
+---
+<Admin title="Dashboard">
+  <div class="grid grid-cols-2 gap-4 lg:grid-cols-4">
+    <div class="card p-5"><div class="text-sm text-mist">Lead 7 hari</div><div class="mt-1 font-display text-3xl font-extrabold">{Number(t?.w ?? 0)}</div></div>
+    <div class="card p-5"><div class="text-sm text-mist">Lead 30 hari</div><div class="mt-1 font-display text-3xl font-extrabold">{Number(t?.m ?? 0)}</div></div>
+    <div class="card p-5"><div class="text-sm text-mist">Unduh profil (30 hari)</div><div class="mt-1 font-display text-3xl font-extrabold">{Number(t?.p ?? 0)}</div></div>
+    <div class="card p-5"><div class="text-sm text-mist">Konversi ke deal</div><div class="mt-1 font-display text-3xl font-extrabold">{conv}%</div></div>
+  </div>
+
+  <div class="card mt-6 p-5">
+    <h2 class="font-semibold">Alur brief</h2>
+    <div class="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-5">
+      {STATUSES.map((s) => (
+        <a href={`/admin/leads?status=${s}&tipe=Brief`} class="rounded-xl border border-white/10 p-4 transition hover:border-white/25">
+          <span class={`st st-${s}`}>{s}</span>
+          <div class="mt-2 font-display text-2xl font-bold">{byStatus[s]}</div>
+        </a>
+      ))}
+    </div>
+  </div>
+
+  <div class="mt-6 grid gap-6 xl:grid-cols-[1.4fr_1fr]">
+    <div class="card overflow-hidden">
+      <div class="flex items-center justify-between p-5 pb-3">
+        <h2 class="font-semibold">Lead terbaru</h2>
+        <a href="/admin/leads" class="text-sm text-brand-300 hover:underline">Semua lead</a>
+      </div>
+      {latest.length === 0 ? (
+        <p class="px-5 pb-6 text-sm text-mist">Belum ada lead. Lead dari formulir brief dan unduh company profile akan muncul di sini.</p>
+      ) : (
+        <div class="overflow-x-auto">
+          <table class="adm-table">
+            <tbody>
+              {latest.map((l) => (
+                <tr>
+                  <td><a href={`/admin/leads/${l.id}`} class="font-semibold hover:underline">{l.nama}</a><div class="text-xs text-mist">{l.usaha || l.bisnis || l.tipe}</div></td>
+                  <td>{l.tipe === 'Brief' ? <span class={`st st-${l.status}`}>{l.status}</span> : <span class="chip">Profil</span>}</td>
+                  <td class="text-right text-xs whitespace-nowrap text-mist">{fmtDate(l.created_at)}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+    </div>
+
+    <div class="space-y-6">
+      <div class="card p-5">
+        <h2 class="flex items-center gap-2 font-semibold"><Icon name="clock" size={18} class="text-amber-300" /> Belum dihubungi &gt; 1 hari</h2>
+        {waiting.length === 0 ? (
+          <p class="mt-3 text-sm text-mist">Semua lead baru sudah ditangani. 👍</p>
+        ) : (
+          <ul class="mt-3 space-y-2 text-sm">
+            {waiting.map((l) => (
+              <li class="flex justify-between gap-3"><a href={`/admin/leads/${l.id}`} class="font-medium hover:underline">{l.nama}{l.usaha && <span class="text-mist"> · {l.usaha}</span>}</a><span class="shrink-0 text-xs text-mist">{fmtDate(l.created_at, false)}</span></li>
+            ))}
+          </ul>
+        )}
+      </div>
+      <div class="card p-5">
+        <h2 class="font-semibold">Sumber lead (90 hari)</h2>
+        {sources.length === 0 ? <p class="mt-3 text-sm text-mist">Belum ada data.</p> : (
+          <ul class="mt-4 space-y-3 text-sm">
+            {sources.map((s) => (
+              <li>
+                <div class="flex justify-between"><span>{s.src}</span><span class="text-mist">{Number(s.n)}</span></div>
+                <div class="mt-1 h-1.5 rounded-full bg-white/10"><div class="h-full rounded-full bg-gradient-to-r from-brand-400 to-aqua" style={`width:${(Number(s.n) / srcMax) * 100}%`}></div></div>
+              </li>
+            ))}
+          </ul>
+        )}
+      </div>
+    </div>
+  </div>
+</Admin>

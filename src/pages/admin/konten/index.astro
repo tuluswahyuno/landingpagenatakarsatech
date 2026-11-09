@@ -1,0 +1,27 @@
+---
+import Admin from '../../../layouts/Admin.astro';
+import Icon from '../../../components/Icon.astro';
+import { query } from '../../../lib/server/db';
+import { sections } from '../../../lib/content-schema';
+import { fmtDate } from '../../../lib/server/http';
+
+const meta = Object.fromEntries(
+  (await query<any>('SELECT c.`key`, c.updated_at, u.name FROM content c LEFT JOIN users u ON u.id = c.updated_by')).map((r) => [r.key, r])
+);
+---
+<Admin title="Konten situs">
+  <p class="mb-6 max-w-2xl text-sm text-mist">Perubahan langsung tampil di situs setelah disimpan. Teks layanan, proses kerja, dan perbandingan ada di kode (<code>src/data/site.ts</code>).</p>
+  <div class="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+    {Object.entries(sections).map(([key, s]) => (
+      <a href={`/admin/konten/${key}`} class="card group flex flex-col p-6 transition hover:border-white/25">
+        <div class="flex items-center justify-between"><h2 class="font-semibold">{s.title}</h2><Icon name="arrow" size={18} class="text-mist transition group-hover:translate-x-1" /></div>
+        <p class="mt-2 flex-1 text-sm text-mist">{s.desc}</p>
+        <p class="mt-4 text-xs text-mist">{meta[key] ? <>Diubah {fmtDate(meta[key].updated_at)}{meta[key].name && <> oleh {meta[key].name}</>}</> : 'Belum diisi'}</p>
+      </a>
+    ))}
+    <a href="/admin/portofolio" class="card group flex flex-col p-6 transition hover:border-white/25">
+      <div class="flex items-center justify-between"><h2 class="font-semibold">Portofolio</h2><Icon name="arrow" size={18} class="text-mist transition group-hover:translate-x-1" /></div>
+      <p class="mt-2 flex-1 text-sm text-mist">Studi kasus aplikasi, screenshot, dan video.</p>
+    </a>
+  </div>
+</Admin>

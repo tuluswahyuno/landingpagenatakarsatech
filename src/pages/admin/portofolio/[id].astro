@@ -1,0 +1,203 @@
+---
+import Admin from '../../../layouts/Admin.astro';
+import Icon from '../../../components/Icon.astro';
+import { one, exec } from '../../../lib/server/db';
+import { invalidateContent, toPortfolio } from '../../../lib/server/content';
+import { portfolioSchema, zodMessage, categories, type PortfolioInput } from '../../../lib/content-schema';
+
+const isNew = Astro.params.id === 'baru';
+const id = isNew ? 0 : Number(Astro.params.id);
+if (!isNew && (!Number.isInteger(id) || id < 1)) return new Response('Tidak ditemukan', { status: 404 });
+
+const lines = (v: FormDataEntryValue | null) => String(v ?? '').split('\n').map((s) => s.trim()).filter(Boolean);
+
+let error = '';
+let p: PortfolioInput;
+
+if (Astro.request.method === 'POST') {
+  const f = await Astro.request.formData();
+  const mv = f.getAll('metric_value').map(String);
+  const ml = f.getAll('metric_label').map(String);
+  const raw = {
+    slug: f.get('slug'), title: f.get('title'), client: f.get('client'), industry: f.get('industry'), category: f.get('category'),
+    year: f.get('year'), summary: f.get('summary'), result: f.get('result'),
+    tags: lines(f.get('tags')), features: lines(f.get('features')), stack: lines(f.get('stack')),
+    metrics: mv.map((value, i) => ({ value: value.trim(), label: (ml[i] ?? '').trim() })).filter((m) => m.value || m.label),
+    images: lines(f.get('images')), mockup: f.get('mockup'), accent: f.get('accent'), video: f.get('video'), demoUrl: f.get('demoUrl'),
+    testimonial: { quote: f.get('t_quote'), name: f.get('t_name'), role: f.get('t_role') },
+    body: String(f.get('body') ?? '').replace(/\r\n/g, '\n'), order: f.get('order'), contoh: f.get('contoh') === 'on', published: f.get('published') === 'on',
+  };
+  const r = portfolioSchema.safeParse(raw);
+  p = r.success ? r.data : (raw as any);
+  if (!r.success) error = zodMessage(r.error);
+  else {
+    const d = r.data;
+    const dup = await one<any>('SELECT id FROM portfolio WHERE slug = ? AND id <> ?', [d.slug, id]);
+    if (dup) error = 'Slug sudah dipakai portofolio lain. Ganti slug-nya.';
+    else {
+      const vals = [
+        d.slug, d.title, d.client, d.industry, d.category, d.year, d.summary, d.result, JSON.stringify(d.tags), JSON.stringify(d.features),
+        JSON.stringify(d.stack), JSON.stringify(d.metrics), JSON.stringify(d.images), d.mockup, d.accent, d.video, d.demoUrl,
+        d.testimonial.quote ? JSON.stringify(d.testimonial) : null, d.body, d.order, d.contoh ? 1 : 0, d.published ? 1 : 0,
+      ];
+      const cols = 'slug = ?, title = ?, client = ?, industry = ?, category = ?, year = ?, summary = ?, result = ?, tags = ?, features = ?, stack = ?, metrics = ?, images = ?, mockup = ?, accent = ?, video = ?, demo_url = ?, testimonial = ?, body = ?, sort_order = ?, contoh = ?, published = ?';
+      let savedId = id;
+      if (isNew) savedId = (await exec(`INSERT INTO portfolio SET ${cols}`, vals)).insertId;
+      else await exec(`UPDATE portfolio SET ${cols} WHERE id = ?`, [...vals, id]);
+      invalidateContent();
+      return Astro.redirect(`/admin/portofolio/${savedId}?ok=${isNew ? 'created' : 'saved'}`, 303);
+    }
+  }
+} else if (isNew) {
+  p = portfolioSchema.parse({ slug: 'baru', title: 'Baru', category: 'retail', year: new Date().getFullYear(), summary: '-' });
+  Object.assign(p, { slug: '', title: '', summary: '', body: '## Masalah\n\n\n\n## Solusi\n\n\n\n## Hasil\n\n', order: 99 });
+} else {
+  const row = await one<any>('SELECT * FROM portfolio WHERE id = ?', [id]);
+  if (!row) return new Response('Tidak ditemukan', { status: 404 });
+  const x = toPortfolio(row);
+  p = { ...x, demoUrl: x.demoUrl, testimonial: x.testimonial ?? { quote: '', name: '', role: '' }, mockup: x.mockup as any, category: x.category as any };
+}
+const metrics = [...(p.metrics ?? []), { value: '', label: '' }, { value: '', label: '' }, { value: '', label: '' }].slice(0, Math.max(3, (p.metrics ?? []).length));
+const join = (a: unknown) => (Array.isArray(a) ? a.join('\n') : String(a ?? ''));
+const t = (p.testimonial ?? {}) as any;
+---
+<Admin title={isNew ? 'Tambah portofolio' : `Edit: ${p.title}`} error={error}>
+  <Fragment slot="actions">
+    {!isNew && p.published && <a href={`/portofolio/${p.slug}/`} target="_blank" class="btn btn-ghost btn-sm"><Icon name="external" size={16} /> <span class="max-sm:hidden">Lihat</span></a>}
+    <a href="/admin/portofolio" class="btn btn-ghost btn-sm"><Icon name="arrow-left" size={16} /> <span class="max-sm:hidden">Kembali</span></a>
+  </Fragment>
+
+  <form method="post" class="grid gap-6 xl:grid-cols-[1.6fr_1fr]" id="pf-form">
+    <div class="space-y-6">
+      <section class="card space-y-4 p-6">
+        <h2 class="font-semibold">Informasi utama</h2>
+        <label class="adm-label">Judul aplikasi
+          <input name="title" id="f-title" value={p.title} class="input mt-1.5" required maxlength="150" />
+        </label>
+        <label class="adm-label">Slug (alamat halaman)
+          <div class="mt-1.5 flex items-center gap-2"><span class="text-sm text-mist">/portofolio/</span><input name="slug" id="f-slug" value={p.slug} class="input" required pattern="[a-z0-9]+(-[a-z0-9]+)*" maxlength="120" /></div>
+          <p class="adm-help">Huruf kecil, angka, dan tanda hubung. Terisi otomatis dari judul. Hindari mengganti slug setelah dipublikasikan.</p>
+        </label>
+        <div class="grid gap-4 sm:grid-cols-2">
+          <label class="adm-label">Klien <input name="client" value={p.client} class="input mt-1.5" placeholder="Toko bangunan, 3 cabang" /></label>
+          <label class="adm-label">Industri <input name="industry" value={p.industry} class="input mt-1.5" placeholder="Retail" /></label>
+          <label class="adm-label">Kategori filter
+            <select name="category" class="input mt-1.5">
+              {categories.filter((c) => c.id !== 'semua').map((c) => <option value={c.id} selected={p.category === c.id}>{c.label}</option>)}
+            </select>
+          </label>
+          <label class="adm-label">Tahun <input name="year" type="number" min="2000" max="2100" value={p.year} class="input mt-1.5" required /></label>
+        </div>
+        <label class="adm-label">Ringkasan (tampil di kartu)
+          <textarea name="summary" rows="2" class="input mt-1.5" required maxlength="400">{p.summary}</textarea>
+        </label>
+        <label class="adm-label">Hasil utama
+          <input name="result" value={p.result} class="input mt-1.5" placeholder="Rekap stok dari 3 hari jadi real-time" maxlength="150" />
+        </label>
+      </section>
+
+      <section class="card space-y-4 p-6">
+        <h2 class="font-semibold">Angka hasil</h2>
+        <p class="adm-help !mt-1">Maksimal 3 ditampilkan di halaman studi kasus. Kosongkan baris yang tidak dipakai.</p>
+        {metrics.map((m) => (
+          <div class="grid grid-cols-[1fr_2fr] gap-3">
+            <input name="metric_value" value={m.value} class="input" placeholder="-35%" maxlength="30" aria-label="Angka" />
+            <input name="metric_label" value={m.label} class="input" placeholder="tunggakan SPP" maxlength="60" aria-label="Keterangan" />
+          </div>
+        ))}
+      </section>
+
+      <section class="card space-y-4 p-6">
+        <h2 class="font-semibold">Isi studi kasus</h2>
+        <label class="adm-label">Cerita (format Markdown)
+          <textarea name="body" rows="16" class="input mt-1.5 font-mono text-sm">{p.body}</textarea>
+          <p class="adm-help">Gunakan <code>## Judul</code> untuk subjudul, baris kosong untuk paragraf baru, dan <code>- </code> untuk daftar.</p>
+        </label>
+      </section>
+
+      <section class="card space-y-4 p-6">
+        <h2 class="font-semibold">Testimoni klien (opsional)</h2>
+        <label class="adm-label">Kutipan <textarea name="t_quote" rows="3" class="input mt-1.5" maxlength="600">{t.quote}</textarea></label>
+        <div class="grid gap-4 sm:grid-cols-2">
+          <label class="adm-label">Nama / jabatan <input name="t_name" value={t.name} class="input mt-1.5" maxlength="80" /></label>
+          <label class="adm-label">Usaha / kota <input name="t_role" value={t.role} class="input mt-1.5" maxlength="80" /></label>
+        </div>
+      </section>
+    </div>
+
+    <div class="space-y-6">
+      <section class="card space-y-4 p-6">
+        <h2 class="font-semibold">Publikasi</h2>
+        <label class="flex items-center gap-2 text-sm"><input type="checkbox" name="published" checked={p.published} class="accent-brand-500" /> Tampilkan di situs</label>
+        <label class="flex items-center gap-2 text-sm"><input type="checkbox" name="contoh" checked={p.contoh} class="accent-brand-500" /> Data contoh (tampil label "Contoh")</label>
+        <label class="adm-label">Urutan <input name="order" type="number" value={p.order} class="input mt-1.5" /><p class="adm-help">Angka kecil tampil lebih dulu. Bisa juga diatur dengan tombol panah di daftar.</p></label>
+        <button class="btn btn-primary w-full">{isNew ? 'Tambah portofolio' : 'Simpan perubahan'}</button>
+      </section>
+
+      <section class="card space-y-4 p-6">
+        <h2 class="font-semibold">Screenshot</h2>
+        <div id="img-preview" class="grid grid-cols-3 gap-2"></div>
+        <label class="adm-label">Daftar gambar
+          <textarea name="images" id="f-images" rows="4" class="input mt-1.5 font-mono text-xs" placeholder="/uploads/2026/11/kasir-1.webp">{join(p.images)}</textarea>
+          <p class="adm-help">Satu alamat per baris. Gambar pertama jadi gambar utama. Ukuran disarankan 1600×1000 px (WebP/JPG).</p>
+        </label>
+        <button type="button" class="btn btn-ghost btn-sm w-full" data-upload="f-images" data-accept="image"><Icon name="upload" size={16} /> Unggah gambar</button>
+      </section>
+
+      <section class="card space-y-4 p-6">
+        <h2 class="font-semibold">Tampilan kartu</h2>
+        <label class="adm-label">Video loop (opsional)
+          <input name="video" id="f-video" value={p.video} class="input mt-1.5" placeholder="/uploads/...mp4" />
+          <p class="adm-help">MP4/WebM pendek (&lt; 1 MB, tanpa suara) diputar di kartu portofolio.</p>
+        </label>
+        <button type="button" class="btn btn-ghost btn-sm w-full" data-upload="f-video" data-accept="video"><Icon name="upload" size={16} /> Unggah video</button>
+        <label class="adm-label">Mockup bila belum ada screenshot
+          <select name="mockup" class="input mt-1.5">
+            <option value="dashboard" selected={p.mockup === 'dashboard'}>Dashboard</option>
+            <option value="kasir" selected={p.mockup === 'kasir'}>Kasir</option>
+            <option value="mobile" selected={p.mockup === 'mobile'}>Aplikasi mobile</option>
+          </select>
+        </label>
+        <label class="adm-label">Warna aksen
+          <div class="mt-1.5 flex items-center gap-3"><input type="color" id="f-accent-pick" value={p.accent} class="h-10 w-14 cursor-pointer rounded-lg border border-white/10 bg-transparent" /><input name="accent" id="f-accent" value={p.accent} class="input" pattern="#[0-9a-fA-F]{6}" /></div>
+        </label>
+        <label class="adm-label">Link demo (opsional) <input name="demoUrl" type="url" value={p.demoUrl} class="input mt-1.5" placeholder="https://demo.contoh.com" /></label>
+      </section>
+
+      <section class="card space-y-4 p-6">
+        <h2 class="font-semibold">Detail</h2>
+        <label class="adm-label">Tag (kartu) <textarea name="tags" rows="3" class="input mt-1.5">{join(p.tags)}</textarea><p class="adm-help">Satu per baris, mis. Kasir, Stok.</p></label>
+        <label class="adm-label">Fitur utama <textarea name="features" rows="5" class="input mt-1.5">{join(p.features)}</textarea><p class="adm-help">Satu fitur per baris.</p></label>
+        <label class="adm-label">Teknologi <textarea name="stack" rows="3" class="input mt-1.5">{join(p.stack)}</textarea><p class="adm-help">Satu per baris, mis. Laravel.</p></label>
+      </section>
+    </div>
+  </form>
+</Admin>
+
+<script>
+  const title = document.getElementById('f-title') as HTMLInputElement;
+  const slug = document.getElementById('f-slug') as HTMLInputElement;
+  const toSlug = (s: string) => s.toLowerCase().normalize('NFKD').replace(/[̀-ͯ]/g, '').replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 120);
+  let auto = !slug.value;
+  slug.addEventListener('input', () => (auto = false));
+  title.addEventListener('input', () => { if (auto) slug.value = toSlug(title.value); });
+
+  const pick = document.getElementById('f-accent-pick') as HTMLInputElement;
+  const accent = document.getElementById('f-accent') as HTMLInputElement;
+  pick.addEventListener('input', () => (accent.value = pick.value));
+  accent.addEventListener('input', () => { if (/^#[0-9a-f]{6}$/i.test(accent.value)) pick.value = accent.value; });
+
+  // Pratinjau screenshot
+  const imgs = document.getElementById('f-images') as HTMLTextAreaElement;
+  const prev = document.getElementById('img-preview')!;
+  const render = () => {
+    prev.replaceChildren(...imgs.value.split('\n').map((s) => s.trim()).filter((s) => /^(\/|https:)/.test(s)).map((src) => {
+      const im = document.createElement('img');
+      im.src = src; im.alt = ''; im.loading = 'lazy';
+      im.className = 'aspect-[16/10] w-full rounded-lg border border-white/10 object-cover';
+      return im;
+    }));
+  };
+  imgs.addEventListener('input', render);
+  render();
+</script>

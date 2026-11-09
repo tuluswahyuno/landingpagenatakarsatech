@@ -1,0 +1,200 @@
+---
+import '@fontsource-variable/inter';
+import '@fontsource-variable/plus-jakarta-sans';
+import '../styles/global.css';
+import Icon from '../components/Icon.astro';
+
+interface Props {
+  title: string;
+  /** Pesan error dari proses form di halaman (ditampilkan di atas konten) */
+  error?: string;
+}
+const { title, error } = Astro.props;
+const user = Astro.locals.user;
+const path = Astro.url.pathname;
+
+const menu = [
+  { href: '/admin', label: 'Dashboard', icon: 'home', roles: ['admin', 'sales'] },
+  { href: '/admin/leads', label: 'Lead', icon: 'inbox', roles: ['admin', 'sales'] },
+  { href: '/admin/portofolio', label: 'Portofolio', icon: 'image', roles: ['admin'] },
+  { href: '/admin/konten', label: 'Konten situs', icon: 'edit', roles: ['admin'] },
+  { href: '/admin/pengguna', label: 'Pengguna', icon: 'users', roles: ['admin'] },
+  { href: '/admin/akun', label: 'Akun saya', icon: 'key', roles: ['admin', 'sales'] },
+].filter((m) => user && m.roles.includes(user.role));
+const active = (href: string) => (href === '/admin' ? /^\/admin\/?$/.test(path) : path.startsWith(href));
+
+// Pesan sukses lewat kode (bukan teks bebas dari URL)
+const okMessages: Record<string, string> = {
+  saved: 'Perubahan tersimpan. Situs sudah diperbarui.',
+  created: 'Berhasil ditambahkan.',
+  deleted: 'Berhasil dihapus.',
+  password: 'Password berhasil diganti.',
+  status: 'Status lead diperbarui.',
+  note: 'Catatan ditambahkan.',
+};
+const ok = okMessages[Astro.url.searchParams.get('ok') ?? ''];
+---
+<!doctype html>
+<html lang="id" class="no-js">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="robots" content="noindex, nofollow" />
+    <title>{title} · Admin Natakarsa Tech</title>
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <script is:inline>
+      (function () {
+        var d = document.documentElement, t;
+        d.classList.remove('no-js');
+        try { t = localStorage.getItem('nk_theme'); } catch (e) {}
+        if (t !== 'light' && t !== 'dark') t = matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark';
+        d.dataset.theme = t;
+      })();
+    </script>
+  </head>
+  <body class="min-h-dvh">
+    {user ? (
+      <div class="lg:grid lg:min-h-dvh lg:grid-cols-[240px_1fr]">
+        <aside id="adm-side" class="adm-side fixed inset-y-0 left-0 z-40 flex w-64 -translate-x-full flex-col border-r border-white/10 bg-ink-950 p-4 transition-transform lg:static lg:w-auto lg:translate-x-0">
+          <a href="/admin" class="flex items-center gap-2.5 px-2 py-2 font-display font-bold">
+            <img src="/favicon.svg" alt="" width="28" height="28" class="h-7 w-7" />
+            <span>Natakarsa<span class="text-gradient"> Admin</span></span>
+          </a>
+          <nav class="mt-6 flex-1 space-y-1" aria-label="Menu admin">
+            {menu.map((m) => (
+              <a href={m.href} class:list={['flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm transition', active(m.href) ? 'bg-brand-500/15 font-semibold text-snow' : 'text-mist hover:bg-white/5 hover:text-snow']} aria-current={active(m.href) ? 'page' : undefined}>
+                <Icon name={m.icon} size={18} />{m.label}
+              </a>
+            ))}
+          </nav>
+          <a href="/" target="_blank" class="flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm text-mist hover:bg-white/5 hover:text-snow"><Icon name="external" size={18} /> Lihat situs</a>
+          <div class="mt-3 border-t border-white/10 pt-3">
+            <div class="px-3 text-sm font-semibold">{user.name}</div>
+            <div class="px-3 text-xs text-mist">{user.email} · {user.role === 'admin' ? 'Admin' : 'Sales'}</div>
+            <form method="post" action="/admin/logout" class="mt-2">
+              <button class="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm text-mist hover:bg-white/5 hover:text-snow"><Icon name="logout" size={18} /> Keluar</button>
+            </form>
+          </div>
+        </aside>
+        <div id="adm-overlay" class="fixed inset-0 z-30 hidden bg-black/50 lg:hidden"></div>
+
+        <div class="min-w-0">
+          <header class="sticky top-0 z-20 flex items-center gap-3 border-b border-white/10 bg-ink-900/85 px-4 py-3 backdrop-blur sm:px-8">
+            <button id="adm-menu" type="button" class="grid h-10 w-10 place-items-center rounded-xl border border-white/10 lg:hidden" aria-label="Buka menu" aria-controls="adm-side" aria-expanded="false"><Icon name="menu" /></button>
+            <h1 class="truncate text-lg font-bold sm:text-xl">{title}</h1>
+            <div class="ml-auto flex items-center gap-2"><slot name="actions" /></div>
+            <button type="button" data-theme-toggle class="theme-btn grid h-10 w-10 shrink-0 place-items-center rounded-xl border border-white/10 text-mist hover:text-snow" aria-label="Ganti tema">
+              <Icon name="sun" size={18} class="i-sun" /><Icon name="moon" size={18} class="i-moon" />
+            </button>
+          </header>
+          <main class="px-4 py-6 sm:px-8 sm:py-8">
+            {ok && <div class="adm-flash mb-6 rounded-xl bg-emerald-500/10 px-4 py-3 text-sm text-emerald-300" role="status">{ok}</div>}
+            {error && <div class="mb-6 rounded-xl bg-red-500/10 px-4 py-3 text-sm text-red-300" role="alert">{error}</div>}
+            <slot />
+          </main>
+        </div>
+      </div>
+    ) : (
+      <slot />
+    )}
+
+    <script>
+      // Menu samping di HP
+      const side = document.getElementById('adm-side');
+      const btn = document.getElementById('adm-menu');
+      const overlay = document.getElementById('adm-overlay');
+      const setOpen = (open: boolean) => {
+        side?.classList.toggle('-translate-x-full', !open);
+        overlay?.classList.toggle('hidden', !open);
+        btn?.setAttribute('aria-expanded', String(open));
+      };
+      btn?.addEventListener('click', () => setOpen(side!.classList.contains('-translate-x-full')));
+      overlay?.addEventListener('click', () => setOpen(false));
+
+      // Tema terang / gelap (sama dengan situs)
+      document.addEventListener('click', (e) => {
+        if (!(e.target as HTMLElement).closest('[data-theme-toggle]')) return;
+        const next = document.documentElement.dataset.theme === 'light' ? 'dark' : 'light';
+        document.documentElement.dataset.theme = next;
+        try { localStorage.setItem('nk_theme', next); } catch {}
+      });
+
+      // Konfirmasi sebelum aksi berbahaya: <form data-confirm="Yakin?">
+      document.addEventListener('submit', (e) => {
+        const f = e.target as HTMLFormElement;
+        const sub = (e as SubmitEvent).submitter as HTMLElement | null;
+        const msg = sub?.dataset.confirm || f.dataset.confirm;
+        if (msg && !confirm(msg)) e.preventDefault();
+      });
+
+      // Hapus ?ok= dari URL agar pesan tidak muncul lagi saat halaman dimuat ulang
+      if (new URLSearchParams(location.search).has('ok')) {
+        const u = new URL(location.href);
+        u.searchParams.delete('ok');
+        history.replaceState(null, '', u);
+      }
+
+      // Tombol upload: <button data-upload="id-input" data-accept="image|video|pdf">
+      document.addEventListener('click', (e) => {
+        const b = (e.target as HTMLElement).closest<HTMLButtonElement>('[data-upload]');
+        if (!b) return;
+        e.preventDefault();
+        const accept = b.dataset.accept || 'any';
+        const picker = document.createElement('input');
+        picker.type = 'file';
+        picker.accept = accept === 'image' ? 'image/*' : accept === 'video' ? 'video/mp4,video/webm' : accept === 'pdf' ? 'application/pdf' : '*/*';
+        picker.addEventListener('change', async () => {
+          const file = picker.files?.[0];
+          if (!file) return;
+          const label = b.innerHTML;
+          b.disabled = true;
+          b.textContent = 'Mengunggah…';
+          try {
+            const fd = new FormData();
+            fd.append('file', file);
+            fd.append('accept', accept);
+            const res = await fetch('/admin/api/upload', { method: 'POST', body: fd });
+            const out = await res.json();
+            if (!out.ok) throw new Error(out.error);
+            b.dispatchEvent(new CustomEvent('uploaded', { bubbles: true, detail: { url: out.url, target: b.dataset.upload } }));
+            const input = document.getElementById(b.dataset.upload!) as HTMLInputElement | HTMLTextAreaElement | null;
+            if (input) {
+              input.value = input.tagName === 'TEXTAREA' && input.value.trim() ? `${input.value.trim()}\n${out.url}` : out.url;
+              input.dispatchEvent(new Event('input', { bubbles: true }));
+            }
+          } catch (err: any) {
+            alert(err.message || 'Gagal mengunggah.');
+          } finally {
+            b.disabled = false;
+            b.innerHTML = label;
+          }
+        });
+        picker.click();
+      });
+    </script>
+  </body>
+</html>
+
+<style is:global>
+  .adm-table { width: 100%; border-collapse: collapse; font-size: 0.875rem; }
+  .adm-table th { text-align: left; font-weight: 600; color: var(--color-mist); font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.04em; padding: 0.75rem 1rem; border-bottom: 1px solid color-mix(in oklab, var(--color-white) 10%, transparent); white-space: nowrap; }
+  .adm-table td { padding: 0.8rem 1rem; border-bottom: 1px solid color-mix(in oklab, var(--color-white) 6%, transparent); vertical-align: top; }
+  .adm-table tr:hover td { background: color-mix(in oklab, var(--color-white) 3%, transparent); }
+  .adm-label { display: block; font-size: 0.875rem; font-weight: 500; }
+  .adm-help { margin-top: 0.35rem; font-size: 0.75rem; color: var(--color-mist); }
+  .btn-sm { padding: 0.5rem 0.9rem !important; font-size: 0.8125rem !important; }
+  .st { display: inline-flex; align-items: center; border-radius: 999px; padding: 0.15rem 0.6rem; font-size: 0.75rem; font-weight: 600; white-space: nowrap; }
+  .st-Baru { background: rgb(59 130 246 / 0.15); color: #60a5fa; }
+  .st-Dihubungi { background: rgb(234 179 8 / 0.15); color: #eab308; }
+  .st-Proposal { background: rgb(168 85 247 / 0.15); color: #c084fc; }
+  .st-Deal { background: rgb(34 197 94 / 0.15); color: #22c55e; }
+  .st-Batal { background: rgb(148 163 184 / 0.15); color: #94a3b8; }
+  :root[data-theme='light'] .st-Baru { color: #1d4ed8; }
+  :root[data-theme='light'] .st-Dihubungi { color: #a16207; }
+  :root[data-theme='light'] .st-Proposal { color: #7e22ce; }
+  :root[data-theme='light'] .st-Deal { color: #15803d; }
+  :root[data-theme='light'] .st-Batal { color: #475569; }
+  .theme-btn .i-moon { display: none; }
+  :root[data-theme='light'] .theme-btn .i-sun { display: none; }
+  :root[data-theme='light'] .theme-btn .i-moon { display: block; }
+</style>
