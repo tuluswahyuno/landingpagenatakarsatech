@@ -44,7 +44,7 @@ const faqLd = faqSchema
 const ld = [org, ...(faqLd ? [faqLd] : []), ...schema];
 ---
 <!doctype html>
-<html lang="id" class="no-js">
+<html lang="id" class="no-js" data-theme="light">
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
@@ -54,7 +54,7 @@ const ld = [org, ...(faqLd ? [faqLd] : []), ...schema];
     <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
     <link rel="preload" href={jakartaUrl} as="font" type="font/woff2" crossorigin />
     <link rel="preload" href={interUrl} as="font" type="font/woff2" crossorigin />
-    <meta name="theme-color" content="#0a0a0f" id="meta-theme" />
+    <meta name="theme-color" content="#f7f8fb" id="meta-theme" />
     <meta property="og:type" content="website" />
     <meta property="og:site_name" content={site.name} />
     <meta property="og:title" content={title} />
@@ -69,7 +69,7 @@ const ld = [org, ...(faqLd ? [faqLd] : []), ...schema];
         var d = document.documentElement, t;
         d.classList.remove('no-js');
         try { t = localStorage.getItem('nk_theme'); } catch (e) {}
-        if (t !== 'light' && t !== 'dark') t = matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark';
+        if (t !== 'light' && t !== 'dark') t = 'light'; // default terang; gelap hanya bila dipilih pengunjung
         d.dataset.theme = t;
         var m = document.getElementById('meta-theme');
         if (m) m.setAttribute('content', t === 'light' ? '#f7f8fb' : '#0a0a0f');
@@ -142,7 +142,7 @@ const ld = [org, ...(faqLd ? [faqLd] : []), ...schema];
           b.setAttribute('aria-pressed', String(t === 'light'));
         });
       };
-      applyTheme((root.dataset.theme as 'light' | 'dark') || 'dark', false);
+      applyTheme((root.dataset.theme as 'light' | 'dark') || 'light', false);
       document.addEventListener('click', (e) => {
         const btn = (e.target as HTMLElement).closest('[data-theme-toggle]');
         if (!btn) return;
@@ -150,12 +150,6 @@ const ld = [org, ...(faqLd ? [faqLd] : []), ...schema];
         applyTheme(next);
         try { localStorage.setItem('nk_theme', next); } catch {}
         w.track('theme_toggle', { theme: next });
-      });
-      // Ikuti perubahan tema sistem selama pengunjung belum memilih sendiri
-      matchMedia('(prefers-color-scheme: light)').addEventListener('change', (e) => {
-        let saved = null;
-        try { saved = localStorage.getItem('nk_theme'); } catch {}
-        if (!saved) applyTheme(e.matches ? 'light' : 'dark');
       });
 
       // ---- Klik semua link WhatsApp tercatat ----
