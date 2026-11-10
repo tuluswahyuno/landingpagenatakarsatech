@@ -3,4 +3,4 @@ Allow: /
 Disallow: /terima-kasih/
 Disallow: /admin/
 
-Sitemap: https://natakarsa.tech/sitemap.xml
+Sitemap: https://natakarsa.com/sitemap.xml

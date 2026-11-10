@@ -4,8 +4,7 @@ import tailwindcss from '@tailwindcss/vite';
 import node from '@astrojs/node';
 
 export default defineConfig({
-  // TODO: ganti dengan domain asli sebelum rilis
-  site: 'https://natakarsa.tech',
+  site: 'https://natakarsa.com',
   // Halaman dirender di server (Node.js) agar perubahan dari panel admin langsung tampil.
   output: 'server',
   adapter: node({ mode: 'standalone' }),

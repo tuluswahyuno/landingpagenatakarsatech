@@ -8,7 +8,7 @@
 
 export const site = {
   name: "Natakarsa Tech",
-  url: "https://natakarsa.tech", // TODO: domain asli (samakan dengan astro.config.mjs)
+  url: "https://natakarsa.com", // samakan dengan `site` di astro.config.mjs
   title: "Natakarsa Tech — Jasa Pembuatan Sistem & Otomasi Bisnis",
   description:
     "Natakarsa Tech membangun sistem custom yang membuat bisnis Anda berjalan otomatis: aplikasi kasir, stok, laporan, ERP, hingga aplikasi mobile. Harga transparan, mulai Rp1,5 juta.",

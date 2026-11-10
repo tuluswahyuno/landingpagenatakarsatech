@@ -81,7 +81,7 @@ async function load(): Promise<SiteContent> {
   const parse = <K extends keyof typeof schemas>(k: K) => {
     const r = schemas[k].safeParse(raw[k] ?? {});
     if (!r.success) console.error(`[content] data "${k}" tidak valid:`, r.error.issues[0]?.message);
-    return (r.success ? r.data : schemas[k].parse({ ...(k === 'kontak' ? { whatsapp: '6289673393833', email: 'halo@natakarsa.tech' } : {}) })) as any;
+    return (r.success ? r.data : schemas[k].parse({ ...(k === 'kontak' ? { whatsapp: '6289673393833', email: 'halo@natakarsa.com' } : {}) })) as any;
   };
   const kontak: Kontak = parse('kontak');
   const portfolio = (await query('SELECT * FROM portfolio WHERE published = 1 ORDER BY sort_order, id')).map(toPortfolio);

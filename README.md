@@ -46,7 +46,17 @@ Lupa password dan tidak ada admin lain? Jalankan `npm run admin:reset` di server
 - Formulir publik: honeypot, validasi server, rate limit per IP/kontak, dan Cloudflare Turnstile (opsional).
 - Header keamanan (CSP, HSTS, X-Frame-Options, dll.) dipasang di `src/middleware.ts`. **Bila menambah layanan pihak ketiga** (script, iframe, API), tambahkan domainnya ke `CSP` di file itu.
 
-## Deploy ke VPS (Ubuntu / Debian)
+## Deploy dengan CloudPanel
+
+Situs ini terpasang di CloudPanel sebagai **Node.js Site** (`natakarsa.com`, user `natakarsa`, App Port **3004**).
+
+- Kode: `/home/natakarsa/htdocs/natakarsa.com`, konfigurasi di `.env` (PORT harus sama dengan App Port).
+- Database dibuat dari tab **Databases** CloudPanel.
+- Proses dijalankan PM2 milik user `natakarsa`; service `pm2-natakarsa` menyalakannya lagi setelah reboot.
+- Nginx & SSL diatur CloudPanel (tab **Vhost** dan **SSL/TLS**). `deploy/nginx.conf` tidak dipakai.
+- Update: `ssh` sebagai root → `su - natakarsa` → `cd htdocs/natakarsa.com && bash deploy/update.sh`.
+
+## Deploy ke VPS tanpa panel (Ubuntu / Debian)
 
 Contoh di bawah memakai folder `/var/www/natakarsa/web`.
 
@@ -95,7 +105,7 @@ pm2 save && pm2 startup     # ikuti perintah yang dicetak
 sudo cp deploy/nginx.conf /etc/nginx/sites-available/natakarsa   # sesuaikan domain & folder
 sudo ln -s /etc/nginx/sites-available/natakarsa /etc/nginx/sites-enabled/
 sudo nginx -t && sudo systemctl reload nginx
-sudo certbot --nginx -d natakarsa.tech -d www.natakarsa.tech
+sudo certbot --nginx -d natakarsa.com -d www.natakarsa.com
 ```
 
 **6. Backup harian** (database + upload, disimpan 14 hari)
@@ -123,7 +133,7 @@ Log aplikasi: `pm2 logs natakarsa-web`
 1. Deploy ke VPS sesuai langkah di atas, isi Telegram (dan SMTP bila ingin email).
 2. Turnstile: buat site di dashboard Cloudflare → isi `PUBLIC_TURNSTILE_SITEKEY` + `TURNSTILE_SECRET` → build ulang.
 3. Konten lewat **/admin**: kontak, NIB, angka, testimoni asli, 6 studi kasus asli + screenshot. Matikan centang *Data contoh* setelah diganti.
-4. Domain: ganti `natakarsa.tech` di `astro.config.mjs`, `public/robots.txt`, `deploy/nginx.conf`, dan `site.url` di `src/data/site.ts`.
+4. Bila domain berubah: ganti `natakarsa.com` di `astro.config.mjs`, `public/robots.txt`, dan `site.url` di `src/data/site.ts`.
 
 ## Analytics
 

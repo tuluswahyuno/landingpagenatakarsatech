@@ -11,7 +11,8 @@ module.exports = {
       instances: 1,
       exec_mode: 'fork',
       max_memory_restart: '400M',
-      env: { HOST: '127.0.0.1', PORT: 4321, NODE_ENV: 'production' },
+      // HOST & PORT diambil dari .env (CloudPanel menentukan port per situs, mis. 3004)
+      env: { NODE_ENV: 'production' },
       time: true,
     },
   ],
