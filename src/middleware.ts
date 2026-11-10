@@ -47,7 +47,6 @@ export const onRequest = defineMiddleware(async (ctx, next) => {
   }
 
   const isAdmin = pathname === '/admin' || pathname.startsWith('/admin/');
-  const isAsset = pathname.startsWith('/uploads/') || pathname.startsWith('/api/') || pathname === '/sitemap.xml';
 
   let res: Response;
   if (isAdmin) {
@@ -70,7 +69,8 @@ export const onRequest = defineMiddleware(async (ctx, next) => {
     }
     res.headers.set('X-Robots-Tag', 'noindex, nofollow');
   } else {
-    if (!isAsset) ctx.locals.content = await getContent();
+    // Selalu dimuat (dari cache) karena halaman 404 untuk alamat apa pun juga membutuhkannya
+    ctx.locals.content = await getContent();
     res = await next();
     const type = res.headers.get('content-type') || '';
     if (type.includes('text/html') && !res.headers.has('Cache-Control')) {
@@ -91,6 +91,6 @@ export const onRequest = defineMiddleware(async (ctx, next) => {
   h.set('X-Content-Type-Options', 'nosniff');
   h.set('Referrer-Policy', 'strict-origin-when-cross-origin');
   h.set('Permissions-Policy', 'camera=(), microphone=(), geolocation=(), payment=()');
-  if (isHttps(ctx)) h.set('Strict-Transport-Security', 'max-age=31536000; includeSubDomains');
+  if (isHttps(ctx)) h.set('Strict-Transport-Security', 'max-age=31536000'); // tanpa includeSubDomains: subdomain lain di server yang sama tidak ikut dipaksa HTTPS
   return res;
 });
