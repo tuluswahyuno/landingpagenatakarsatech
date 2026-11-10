@@ -1,7 +1,8 @@
 ---
 import Base from '../layouts/Base.astro';
 import { site } from '../data/site';
-const { email } = Astro.locals.content.kontak;
+const { kontak, waLink } = Astro.locals.content;
+const { email } = kontak;
 ---
 <Base title="Kebijakan Privasi — Natakarsa Tech" description="Bagaimana Natakarsa Tech mengelola data yang Anda kirimkan.">
   <section class="pt-36 pb-24">
@@ -26,7 +27,7 @@ const { email } = Astro.locals.content.kontak;
       <p>Data formulir disimpan di database pada server milik {site.name} dan diteruskan sebagai notifikasi kepada tim kami melalui Telegram dan email. Akses hanya untuk tim {site.name} yang memiliki akun, dilindungi password. Data dikirim melalui koneksi terenkripsi (HTTPS). Kami tidak menjual atau membagikan data Anda kepada pihak lain di luar penyedia layanan tersebut.</p>
       <p>Data lead disimpan selama diperlukan untuk tujuan di atas, paling lama 2 tahun sejak kontak terakhir, lalu dihapus.</p>
       <h2>Hak Anda</h2>
-      <p>Anda dapat meminta salinan, perbaikan, atau penghapusan data Anda kapan saja dengan menghubungi <a href={`mailto:${email}`}>{email}</a>.</p>
+      <p>Anda dapat meminta salinan, perbaikan, atau penghapusan data Anda kapan saja dengan menghubungi {email ? <a href={`mailto:${email}`}>{email}</a> : <a href={waLink('Halo Natakarsa Tech, saya ingin mengajukan permintaan terkait data pribadi saya.')} target="_blank" rel="noopener">WhatsApp kami</a>}.</p>
       <p class="text-sm">Terakhir diperbarui: November 2026.</p>
     </div>
   </section>

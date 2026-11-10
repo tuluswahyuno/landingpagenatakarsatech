@@ -1,15 +1,12 @@
 {
   "whatsapp": "6289673393833",
-  "email": "halo@natakarsa.com",
-  "address": "Indonesia",
+  "email": "",
+  "address": "",
   "hours": "Senin–Sabtu, 08.00–17.00 WIB",
   "legal": "Natakarsa Tech",
   "nib": "",
-  "socials": [
-    { "label": "Instagram", "href": "https://instagram.com/" },
-    { "label": "TikTok", "href": "https://tiktok.com/" },
-    { "label": "LinkedIn", "href": "https://linkedin.com/" }
-  ],
+  "socials": [],
   "bookingUrl": "",
-  "companyProfileUrl": ""
+  "companyProfileUrl": "",
+  "footerText": "Partner otomasi bisnis. Kami membangun sistem custom yang membuat usaha Anda berjalan rapi, cepat, dan terukur."
 }

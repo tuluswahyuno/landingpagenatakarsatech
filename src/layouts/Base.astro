@@ -30,7 +30,7 @@ const org = {
   '@type': 'Organization',
   name: site.name,
   url: site.url,
-  email: kontak.email,
+  ...(kontak.email ? { email: kontak.email } : {}),
   logo: new URL('/favicon.svg', site.url).href,
   sameAs: kontak.socials.map((s) => s.href),
 };

@@ -1,7 +1,10 @@
 ---
+import Icon from './Icon.astro';
 import { nav } from '../data/site';
 const { kontak: site, waLink } = Astro.locals.content;
 const year = new Date().getFullYear();
+// 6289673393833 → +62 896-7339-3833
+const waPretty = site.whatsapp.replace(/^62(\d{3})(\d{4})(\d+)$/, '+62 $1-$2-$3');
 ---
 <footer class="border-t border-white/5 bg-ink-950">
   <div class="container-x grid gap-10 py-14 sm:grid-cols-2 lg:grid-cols-4">
@@ -10,7 +13,7 @@ const year = new Date().getFullYear();
         <img src="/favicon.svg" alt="" width="28" height="28" class="h-7 w-7" />
         Natakarsa<span class="text-gradient -ml-1.5"> Tech</span>
       </a>
-      <p class="mt-4 max-w-sm text-sm text-mist">Partner otomasi bisnis. Kami membangun sistem custom yang membuat usaha Anda berjalan rapi, cepat, dan terukur.</p>
+      {site.footerText && <p class="mt-4 max-w-sm text-sm text-mist">{site.footerText}</p>}
     </div>
     <div>
       <h3 class="text-sm font-semibold text-snow">Menu</h3>
@@ -25,14 +28,16 @@ const year = new Date().getFullYear();
     <div>
       <h3 class="text-sm font-semibold text-snow">Kontak</h3>
       <ul class="mt-4 space-y-2 text-sm text-mist">
-        <li><a href={waLink('Halo Natakarsa Tech')} target="_blank" rel="noopener" data-section="footer" class="hover:text-snow">WhatsApp: +{site.whatsapp}</a></li>
-        <li><a href={`mailto:${site.email}`} class="hover:text-snow">{site.email}</a></li>
-        <li>{site.address}</li>
-        <li>{site.hours}</li>
+        <li><a href={waLink('Halo Natakarsa Tech')} target="_blank" rel="noopener" data-section="footer" class="inline-flex items-center gap-2 hover:text-snow"><Icon name="wa" size={16} class="text-wa" /> {waPretty}</a></li>
+        {site.email && <li><a href={`mailto:${site.email}`} class="hover:text-snow">{site.email}</a></li>}
+        {site.address && <li>{site.address}</li>}
+        {site.hours && <li>{site.hours}</li>}
       </ul>
-      <div class="mt-4 flex flex-wrap gap-2">
-        {site.socials.map((s) => <a href={s.href} target="_blank" rel="noopener" class="chip hover:text-snow">{s.label}</a>)}
-      </div>
+      {site.socials.length > 0 && (
+        <div class="mt-4 flex flex-wrap gap-2">
+          {site.socials.map((s) => <a href={s.href} target="_blank" rel="noopener" class="chip hover:text-snow">{s.label}</a>)}
+        </div>
+      )}
     </div>
   </div>
   <div class="border-t border-white/5 py-6 text-center text-xs text-mist">© {year} {site.legal}{site.nib && <> · NIB {site.nib}</>}. Semua hak dilindungi.</div>
