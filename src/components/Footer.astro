@@ -1,44 +1,49 @@
 ---
-import Icon from './Icon.astro';
 import { nav } from '../data/site';
-const { kontak: site, waLink } = Astro.locals.content;
+const { kontak: site } = Astro.locals.content;
 const year = new Date().getFullYear();
-// 6289673393833 → +62 896-7339-3833
-const waPretty = site.whatsapp.replace(/^62(\d{3})(\d{4})(\d+)$/, '+62 $1-$2-$3');
+// Kolom kontak hanya tampil bila ada isinya (diatur di admin: Konten situs > Kontak & perusahaan).
+// Nomor WhatsApp tidak ditampilkan di sini karena sudah ada di tombol WhatsApp di seluruh halaman.
+const hasContact = !!(site.email || site.address || site.hours || site.socials.length);
+const menu = [
+  ...nav,
+  ...(site.bookingUrl ? [{ label: 'Jadwalkan konsultasi', href: site.bookingUrl, external: true }] : []),
+  { label: 'Kebijakan privasi', href: '/kebijakan-privasi' },
+];
+const cookieSettings = !!(import.meta.env.PUBLIC_GA4_ID || import.meta.env.PUBLIC_CLARITY_ID || import.meta.env.PUBLIC_META_PIXEL_ID);
 ---
 <footer class="border-t border-white/5 bg-ink-950">
-  <div class="container-x grid gap-10 py-14 sm:grid-cols-2 lg:grid-cols-4">
-    <div class="lg:col-span-2">
+  <div class:list={['container-x grid gap-10 py-14', hasContact ? 'md:grid-cols-[1.4fr_1fr_1fr]' : 'md:grid-cols-[1.4fr_1fr]']}>
+    <div>
       <a href="/" class="flex items-center gap-2.5 font-display text-lg font-bold">
         <img src="/favicon.svg" alt="" width="28" height="28" class="h-7 w-7" />
         Natakarsa<span class="text-gradient -ml-1.5"> Tech</span>
       </a>
       {site.footerText && <p class="mt-4 max-w-sm text-sm text-mist">{site.footerText}</p>}
     </div>
-    <div>
+    <div class="md:justify-self-end">
       <h3 class="text-sm font-semibold text-snow">Menu</h3>
-      <ul class="mt-4 space-y-2 text-sm text-mist">
-        {nav.map((n) => <li><a href={n.href} class="hover:text-snow">{n.label}</a></li>)}
-        {site.bookingUrl && <li><a href={site.bookingUrl} target="_blank" rel="noopener" data-track="booking_open" class="hover:text-snow">Jadwalkan konsultasi</a></li>}
-        {site.companyProfileUrl && <li><button type="button" data-open-profile class="hover:text-snow">Company profile (PDF)</button></li>}
-        <li><a href="/kebijakan-privasi" class="hover:text-snow">Kebijakan privasi</a></li>
-        {(import.meta.env.PUBLIC_GA4_ID || import.meta.env.PUBLIC_CLARITY_ID || import.meta.env.PUBLIC_META_PIXEL_ID) && <li><button type="button" data-consent-open class="hover:text-snow">Pengaturan cookie</button></li>}
+      <ul class="mt-4 grid w-fit grid-cols-2 gap-x-10 gap-y-2 text-sm text-mist sm:grid-cols-3">
+        {menu.map((n) => <li><a href={n.href} class="hover:text-snow" {...('external' in n ? { target: '_blank', rel: 'noopener', 'data-track': 'booking_open' } : {})}>{n.label}</a></li>)}
+        {site.companyProfileUrl && <li><button type="button" data-open-profile class="text-left hover:text-snow">Company profile</button></li>}
+        {cookieSettings && <li><button type="button" data-consent-open class="text-left hover:text-snow">Pengaturan cookie</button></li>}
       </ul>
     </div>
-    <div>
-      <h3 class="text-sm font-semibold text-snow">Kontak</h3>
-      <ul class="mt-4 space-y-2 text-sm text-mist">
-        <li><a href={waLink('Halo Natakarsa Tech')} target="_blank" rel="noopener" data-section="footer" class="inline-flex items-center gap-2 hover:text-snow"><Icon name="wa" size={16} class="text-wa" /> {waPretty}</a></li>
-        {site.email && <li><a href={`mailto:${site.email}`} class="hover:text-snow">{site.email}</a></li>}
-        {site.address && <li>{site.address}</li>}
-        {site.hours && <li>{site.hours}</li>}
-      </ul>
-      {site.socials.length > 0 && (
-        <div class="mt-4 flex flex-wrap gap-2">
-          {site.socials.map((s) => <a href={s.href} target="_blank" rel="noopener" class="chip hover:text-snow">{s.label}</a>)}
-        </div>
-      )}
-    </div>
+    {hasContact && (
+      <div>
+        <h3 class="text-sm font-semibold text-snow">Kontak</h3>
+        <ul class="mt-4 space-y-2 text-sm text-mist">
+          {site.email && <li><a href={`mailto:${site.email}`} class="hover:text-snow">{site.email}</a></li>}
+          {site.address && <li>{site.address}</li>}
+          {site.hours && <li>{site.hours}</li>}
+        </ul>
+        {site.socials.length > 0 && (
+          <div class="mt-4 flex flex-wrap gap-2">
+            {site.socials.map((s) => <a href={s.href} target="_blank" rel="noopener" class="chip hover:text-snow">{s.label}</a>)}
+          </div>
+        )}
+      </div>
+    )}
   </div>
   <div class="border-t border-white/5 py-6 text-center text-xs text-mist">© {year} {site.legal}{site.nib && <> · NIB {site.nib}</>}. Semua hak dilindungi.</div>
 </footer>
